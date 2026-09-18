@@ -64,10 +64,10 @@
 <script src="assets/firebase-init.js"></script>
 <script src="assets/shop.js"></script>
 <script>
-  initCategories(function () {
+  initSettings(() => initCategories(function () {
     mountHeader(null);
     mountFooter();
-  });
+  }));
 
   function renderCartPage() {
     const cart = getCart();
