@@ -4,7 +4,7 @@
 
 const WHATSAPP_NUMBER = "201028735709"; // 0102... بصيغة دولية بدون الصفر وبدون +
 
-const CATEGORIES = [
+const DEFAULT_CATEGORIES = [
   { slug: "plastic-cups", name: "أكواب بلاستيكية", icon: "cup" },
   { slug: "meal-boxes",   name: "علب الوجبات",      icon: "box" },
   { slug: "paper-cups",   name: "أكواب ورقية",      icon: "cup" },
@@ -13,6 +13,27 @@ const CATEGORIES = [
   { slug: "accessories",  name: "إكسسوارات",        icon: "star" },
   { slug: "medical",      name: "مستلزمات طبية",     icon: "cross" },
 ];
+/* CATEGORIES تبدأ بالقيم الافتراضية عشان الصفحة متفضلش فاضية، وبعدين
+   initCategories() بتحدّثها بالأقسام الحقيقية المخزّنة في Firebase (لو موجودة) */
+let CATEGORIES = DEFAULT_CATEGORIES.slice();
+
+/* تحميل الأقسام من Firebase (مع بذر القيم الافتراضية أول مرة)، وتشغيل
+   callback في كل مرة تتغير فيها الأقسام (إضافة/حذف من لوحة التحكم) */
+function initCategories(callback) {
+  if (typeof db === "undefined") { callback(CATEGORIES); return; }
+  db.ref("categories").on("value", snap => {
+    const val = snap.val();
+    if (val && Object.keys(val).length) {
+      CATEGORIES = Object.entries(val).map(([slug, c]) => ({ slug, name: c.name, icon: c.icon || "box" }));
+    } else {
+      const seed = {};
+      DEFAULT_CATEGORIES.forEach(c => { seed[c.slug] = { name: c.name, icon: c.icon }; });
+      db.ref("categories").set(seed);
+      CATEGORIES = DEFAULT_CATEGORIES.slice();
+    }
+    callback(CATEGORIES);
+  });
+}
 
 function catName(slug) {
   const c = CATEGORIES.find(c => c.slug === slug);
@@ -184,21 +205,42 @@ function pushOrderToFirebase(cart, customer) {
     status: "new",
     createdAt: Date.now(),
   };
+  upsertCustomer(customer, order.total);
   return db.ref("orders").push(order);
+}
+
+/* حفظ/تحديث بيانات العميل (الاسم والهاتف) كل ما حد يعمل أوردر */
+function upsertCustomer(customer, orderTotal) {
+  if (typeof db === "undefined") return;
+  const key = (customer.phone || "").replace(/[^0-9]/g, "") || "unknown_" + Date.now();
+  db.ref("customers/" + key).transaction(current => {
+    current = current || { name: customer.name, phone: customer.phone, ordersCount: 0, totalSpent: 0 };
+    current.name = customer.name || current.name;
+    current.phone = customer.phone || current.phone;
+    current.ordersCount = (current.ordersCount || 0) + 1;
+    current.totalSpent = (current.totalSpent || 0) + orderTotal;
+    current.lastOrderAt = Date.now();
+    return current;
+  });
 }
 
 function sendOrderViaWhatsapp(customer) {
   const cart = getCart();
   if (!cart.length) { showToast("السلة فاضية"); return; }
   const msg = buildWhatsappMessage(cart, customer);
-  pushOrderToFirebase(cart, customer).finally(() => {
-    const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`;
-    window.open(url, "_blank");
-    localStorage.removeItem(CART_KEY);
-    updateCartCount();
-    if (typeof renderCartPage === "function") renderCartPage();
-    renderDrawer();
-  });
+  const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`;
+
+  /* لازم نفتح واتساب فورًا جوه حدث الضغطة نفسها، وإلا هيمنعه المتصفح على الموبايل
+     لو استنينا رد Firebase الأول (نفس فكرة الـ popup blocker) */
+  window.open(url, "_blank");
+
+  /* حفظ الطلب في الخلفية (Firebase) من غير ما يعطل فتح واتساب */
+  pushOrderToFirebase(cart, customer).catch(err => console.warn("تعذر حفظ الطلب:", err));
+
+  localStorage.removeItem(CART_KEY);
+  updateCartCount();
+  if (typeof renderCartPage === "function") renderCartPage();
+  renderDrawer();
 }
 
 /* ---------- تحميل المنتجات من Firebase ---------- */
