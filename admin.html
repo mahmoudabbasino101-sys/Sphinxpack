@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لوحة تحكم SphinxPack</title>
+<link rel="icon" href="assets/images/sphinx-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="assets/admin.css">
+</head>
+<body class="admin-body">
+
+<!-- ===== شاشة الدخول ===== -->
+<div class="login-screen" id="login-screen">
+  <div class="login-box">
+    <div class="mark"><img src="assets/images/sphinx-logo.png" alt="SphinxPack"></div>
+    <h2>لوحة تحكم SphinxPack</h2>
+    <p>سجّل الدخول لإدارة المنتجات والأوردرات</p>
+    <input type="password" id="login-pass" placeholder="كلمة المرور" onkeydown="if(event.key==='Enter')doLogin()">
+    <div class="login-error" id="login-error"></div>
+    <button class="btn btn-ink btn-block" onclick="doLogin()">دخول</button>
+  </div>
+</div>
+
+<!-- ===== لوحة التحكم ===== -->
+<div id="dashboard" class="hidden">
+  <div class="admin-shell">
+
+    <!-- ===== Sidebar ===== -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <span class="mark"><img src="assets/images/sphinx-logo.png" alt=""></span>
+        <div>
+          <strong>SphinxPack</strong>
+          <small>SHOP ADMIN</small>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <button class="active" data-view="dashboard">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+          <span>لوحة التحكم</span>
+        </button>
+        <button data-view="products">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 8 12 4l9 4-9 4-9-4Z"/><path d="M3 8v9l9 4 9-4V8"/><path d="M12 12v9"/></svg>
+          <span>المنتجات</span>
+        </button>
+        <button data-view="orders">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 8h12l1 12H5L6 8Z"/><path d="M9 8a3 3 0 0 1 6 0"/></svg>
+          <span>الأوردرات</span>
+          <span class="pip" id="sidebar-new-pip"></span>
+        </button>
+      </nav>
+      <div class="sidebar-foot">
+        <a href="index.html" target="_blank">مشاهدة المتجر ↗</a>
+        <button class="logout" onclick="logout()">تسجيل الخروج</button>
+      </div>
+    </aside>
+
+    <!-- ===== Main area ===== -->
+    <div class="main-area">
+
+      <!-- ---- Dashboard view ---- -->
+      <section class="view active" id="view-dashboard">
+        <div class="page-top">
+          <div>
+            <h1>لوحة التحكم</h1>
+            <div class="crumb">Admin / Dashboard</div>
+          </div>
+        </div>
+        <div class="admin-content">
+          <div class="stat-row">
+            <div class="stat-card alert">
+              <div class="num" id="stat-new">0</div>
+              <div class="label">أوردرات جديدة (تحتاج تأكيد)</div>
+            </div>
+            <div class="stat-card">
+              <div class="num" id="stat-month">0</div>
+              <div class="label">إجمالي أوردرات هذا الشهر</div>
+            </div>
+            <div class="stat-card">
+              <div class="num" id="stat-done">0</div>
+              <div class="label">أوردرات تم تسليمها</div>
+            </div>
+            <div class="stat-card">
+              <div class="num" id="stat-products">0</div>
+              <div class="label">عدد المنتجات بالمتجر</div>
+            </div>
+          </div>
+          <div class="card">
+            <h3>آخر الأوردرات الجديدة</h3>
+            <table class="data-table">
+              <thead><tr><th>التاريخ</th><th>العميل</th><th>الهاتف</th><th>الإجمالي</th><th></th></tr></thead>
+              <tbody id="dash-orders-tbody"><tr class="empty-row"><td colspan="5">جاري التحميل...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---- Products view ---- -->
+      <section class="view" id="view-products">
+        <div class="page-top">
+          <div>
+            <h1>إدارة المنتجات</h1>
+            <div class="crumb">Admin / Products</div>
+          </div>
+          <div class="actions-inline">
+            <div class="search-box">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+              <input type="text" id="product-search" placeholder="ابحث عن منتج...">
+            </div>
+            <button class="btn btn-amber" onclick="document.getElementById('form-card').scrollIntoView({behavior:'smooth'})">+ إضافة منتج</button>
+          </div>
+        </div>
+        <div class="admin-content">
+          <div class="card" id="form-card">
+            <h3 id="form-title">إضافة منتج جديد</h3>
+            <div class="form-grid">
+              <div class="field"><label>اسم المنتج</label><input id="p-name" type="text" placeholder="مثال: كوب بلاستيك 200 مل"></div>
+              <div class="field">
+                <label>الباركود / SKU</label>
+                <div class="scan-row">
+                  <input id="p-barcode" type="text" placeholder="امسح أو اكتب الكود">
+                  <button class="btn btn-outline" onclick="openScanner()">📷</button>
+                </div>
+              </div>
+              <div class="field"><label>القسم</label><select id="p-cat"></select></div>
+              <div class="field"><label>السعر (ج.م)</label><input id="p-price" type="number" min="0" step="0.01" placeholder="0.00"></div>
+              <div class="field"><label>الكمية بالمخزن</label><input id="p-qty" type="number" min="0" placeholder="0"></div>
+              <div class="field">
+                <label>صورة المنتج</label>
+                <input type="file" accept="image/*" id="p-image">
+              </div>
+              <div class="field full"><label>الوصف (اختياري)</label><textarea id="p-desc" rows="2" placeholder="تفاصيل إضافية عن المنتج"></textarea></div>
+              <div class="full" style="display:flex;gap:14px;align-items:flex-start">
+                <div class="img-preview" id="img-preview">هتظهر الصورة هنا</div>
+                <div style="display:flex;gap:10px;padding-top:4px">
+                  <button class="btn btn-amber" id="save-product-btn" onclick="saveProduct()">حفظ المنتج</button>
+                  <button class="btn btn-outline hidden" id="cancel-edit-btn" onclick="cancelEdit()">إلغاء التعديل</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>كل المنتجات (<span id="products-count">0</span>)</h3>
+            <table class="data-table">
+              <thead><tr><th>صورة</th><th>اسم المنتج</th><th>الباركود/SKU</th><th>السعر</th><th>المخزون</th><th>القسم</th><th>الحالة</th><th></th></tr></thead>
+              <tbody id="products-tbody"><tr class="empty-row"><td colspan="8">جاري التحميل...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---- Orders view ---- -->
+      <section class="view" id="view-orders">
+        <div class="page-top">
+          <div>
+            <h1>الأوردرات</h1>
+            <div class="crumb">Admin / Orders</div>
+          </div>
+        </div>
+        <div class="admin-content">
+          <div class="tabs">
+            <button class="active" data-sub="new">جديدة <span id="badge-new"></span></button>
+            <button data-sub="done">تم التسليم</button>
+          </div>
+          <div class="card">
+            <table class="data-table">
+              <thead><tr>
+                <th>التاريخ</th><th>العميل</th><th>الهاتف</th><th>تفاصيل الطلب</th><th>الإجمالي</th><th>الحالة</th><th></th>
+              </tr></thead>
+              <tbody id="orders-tbody"><tr class="empty-row"><td colspan="7">جاري التحميل...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<!-- ===== مودال مسح الباركود ===== -->
+<div class="scanner-modal" id="scanner-modal">
+  <div class="scanner-box">
+    <h4>مسح الباركود <button class="drawer-close" onclick="closeScanner()">×</button></h4>
+    <div id="qr-reader"></div>
+    <p style="font-size:12.5px;color:var(--text-soft);margin-top:8px">وجّه الكاميرا ناحية الباركود — هيتسجل الكود تلقائيًا.</p>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="assets/firebase-init.js"></script>
+<script src="assets/shop.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="assets/admin.js"></script>
+<script>
+/* ---------------- تسجيل الدخول ---------------- */
+function showDashboard() {
+  document.getElementById("login-screen").classList.add("hidden");
+  document.getElementById("dashboard").classList.remove("hidden");
+  initDashboard();
+}
+function doLogin() {
+  const pass = document.getElementById("login-pass").value;
+  if (login(pass)) { showDashboard(); }
+  else document.getElementById("login-error").textContent = "كلمة المرور غير صحيحة";
+}
+if (isAuthed()) showDashboard();
+
+/* ---------------- تنقل السايدبار بين الصفحات ---------------- */
+document.querySelectorAll(".sidebar-nav button[data-view]").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".sidebar-nav button[data-view]").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+    document.getElementById("view-" + btn.dataset.view).classList.add("active");
+  });
+});
+
+/* ---------------- إعداد اختيار القسم ---------------- */
+const catSelect = document.getElementById("p-cat");
+catSelect.innerHTML = CATEGORIES.map(c => `<option value="${c.slug}">${c.name}</option>`).join("");
+
+/* ---------------- تأمين النصوص داخل onclick ---------------- */
+function safeJson(obj) {
+  return JSON.stringify(obj).replace(/'/g, "&#39;").replace(/"/g, "&quot;");
+}
+
+/* ---------------- أيقونات الأزرار ---------------- */
+const ICON_EDIT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
+const ICON_VIEW = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg>';
+const ICON_TRASH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0-1 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L6 6"/></svg>';
+
+/* ---------------- معاينة الصورة ---------------- */
+let pendingImageBase64 = "";
+document.getElementById("p-image").addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const preview = document.getElementById("img-preview");
+  preview.textContent = "جاري التجهيز...";
+  try {
+    pendingImageBase64 = await compressImage(file);
+    preview.innerHTML = `<img src="${pendingImageBase64}">`;
+  } catch { preview.textContent = "تعذر تحميل الصورة"; }
+});
+
+/* ---------------- إضافة / تعديل منتج ---------------- */
+let editingProduct = null; // { id, category }
+
+function resetForm() {
+  document.getElementById("p-name").value = "";
+  document.getElementById("p-qty").value = "";
+  document.getElementById("p-price").value = "";
+  document.getElementById("p-barcode").value = "";
+  document.getElementById("p-desc").value = "";
+  document.getElementById("img-preview").innerHTML = "هتظهر الصورة هنا";
+  pendingImageBase64 = "";
+  editingProduct = null;
+  document.getElementById("form-title").textContent = "إضافة منتج جديد";
+  document.getElementById("save-product-btn").textContent = "حفظ المنتج";
+  document.getElementById("cancel-edit-btn").classList.add("hidden");
+}
+
+function saveProduct() {
+  const name = document.getElementById("p-name").value.trim();
+  const category = catSelect.value;
+  const qty = parseInt(document.getElementById("p-qty").value || "0");
+  const price = parseFloat(document.getElementById("p-price").value || "0");
+  const barcode = document.getElementById("p-barcode").value.trim();
+  const description = document.getElementById("p-desc").value.trim();
+  if (!name || !price) { showToast("اكتب اسم المنتج والسعر على الأقل"); return; }
+
+  const data = { name, category, qty, price, barcode, description, image: pendingImageBase64 };
+
+  if (editingProduct) {
+    const upd = { name, qty, price, barcode, description };
+    if (pendingImageBase64) upd.image = pendingImageBase64;
+    if (editingProduct.category !== category) {
+      deleteProduct(editingProduct.category, editingProduct.id).then(() => addProduct(data));
+    } else {
+      updateProduct(editingProduct.category, editingProduct.id, upd);
+    }
+    showToast("تم تعديل المنتج");
+  } else {
+    addProduct(data);
+    showToast("تم إضافة المنتج");
+  }
+  resetForm();
+}
+
+function editProduct(p) {
+  editingProduct = { id: p.id, category: p.category };
+  document.getElementById("p-name").value = p.name || "";
+  catSelect.value = p.category;
+  document.getElementById("p-qty").value = p.qty || 0;
+  document.getElementById("p-price").value = p.price || 0;
+  document.getElementById("p-barcode").value = p.barcode || "";
+  document.getElementById("p-desc").value = p.description || "";
+  document.getElementById("img-preview").innerHTML = p.image ? `<img src="${p.image}">` : "هتظهر الصورة هنا";
+  pendingImageBase64 = "";
+  document.getElementById("form-title").textContent = "تعديل: " + p.name;
+  document.getElementById("save-product-btn").textContent = "حفظ التعديل";
+  document.getElementById("cancel-edit-btn").classList.remove("hidden");
+  document.querySelector('.sidebar-nav button[data-view="products"]').click();
+  document.getElementById("form-card").scrollIntoView({ behavior: "smooth" });
+}
+function cancelEdit() { resetForm(); }
+
+function removeProduct(p) {
+  if (!confirm(`متأكد من حذف "${p.name}"؟`)) return;
+  deleteProduct(p.category, p.id);
+}
+function viewProduct(p) {
+  window.open("category.html?cat=" + p.category, "_blank");
+}
+
+/* ---------------- مسح الباركود بالكاميرا ---------------- */
+let qrScanner = null;
+function openScanner() {
+  document.getElementById("scanner-modal").classList.add("open");
+  qrScanner = new Html5Qrcode("qr-reader");
+  qrScanner.start(
+    { facingMode: "environment" },
+    { fps: 10, qrbox: 220 },
+    (decodedText) => {
+      document.getElementById("p-barcode").value = decodedText;
+      closeScanner();
+      showToast("تم مسح الكود: " + decodedText);
+    },
+    () => {}
+  ).catch(() => showToast("تعذر تشغيل الكاميرا — تأكد من صلاحيات المتصفح"));
+}
+function closeScanner() {
+  document.getElementById("scanner-modal").classList.remove("open");
+  if (qrScanner) {
+    qrScanner.stop().then(() => qrScanner.clear()).catch(() => {});
+    qrScanner = null;
+  }
+}
+
+/* ---------------- عرض قائمة المنتجات ---------------- */
+let allProducts = [];
+function renderProductsTable() {
+  const q = (document.getElementById("product-search").value || "").trim().toLowerCase();
+  const list = allProducts.filter(p =>
+    !q || (p.name || "").toLowerCase().includes(q) || (p.barcode || "").toLowerCase().includes(q)
+  );
+  const tbody = document.getElementById("products-tbody");
+  document.getElementById("stat-products").textContent = allProducts.length;
+  document.getElementById("products-count").textContent = list.length;
+  if (!list.length) {
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="8">لا يوجد منتجات مطابقة</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = list.map(p => `
+    <tr>
+      <td><div class="mini-thumb">${p.image ? `<img src="${p.image}">` : "—"}</div></td>
+      <td>${p.name}</td>
+      <td>${p.barcode || "—"}</td>
+      <td>${(p.price ?? 0).toFixed(2)} ج.م</td>
+      <td><span class="pill ${(p.qty ?? 0) > 0 ? "ok" : "low"}">${p.qty ?? 0}</span></td>
+      <td>${catName(p.category)}</td>
+      <td><span class="pill ${(p.qty ?? 0) > 0 ? "ok" : "low"}">${(p.qty ?? 0) > 0 ? "متوفر" : "غير متوفر"}</span></td>
+      <td class="row-actions">
+        <button class="icon-btn" title="مشاهدة في المتجر" onclick='viewProduct(${safeJson(p)})'>${ICON_VIEW}</button>
+        <button class="icon-btn" title="تعديل" onclick='editProduct(${safeJson(p)})'>${ICON_EDIT}</button>
+        <button class="icon-btn danger" title="حذف" onclick='removeProduct(${safeJson(p)})'>${ICON_TRASH}</button>
+      </td>
+    </tr>`).join("");
+}
+document.getElementById("product-search").addEventListener("input", renderProductsTable);
+
+/* ---------------- عرض الأوردرات ---------------- */
+let currentOrderSub = "new";
+let allOrders = [];
+
+document.querySelectorAll('.tabs button[data-sub]').forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll('.tabs button[data-sub]').forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    currentOrderSub = btn.dataset.sub;
+    renderOrdersTable();
+  });
+});
+
+function orderRow(o, withAction) {
+  return `
+    <tr>
+      <td>${o.createdAt ? new Date(o.createdAt).toLocaleString("ar-EG") : "—"}</td>
+      <td>${o.customerName || "—"}</td>
+      <td>${o.customerPhone ? `<a href="https://wa.me/2${o.customerPhone.replace(/^0/,'')}" target="_blank">${o.customerPhone}</a>` : "—"}</td>
+      <td class="order-items-list">${(o.items || []).map(i => `<div>${i.name} × ${i.qty}</div>`).join("")}</td>
+      <td>${(o.total ?? 0).toFixed(2)} ج.م</td>
+      <td><span class="pill ${o.status === "done" ? "done" : "new"}">${o.status === "done" ? "تم التسليم" : "جديد"}</span></td>
+      <td class="row-actions">
+        ${withAction && o.status !== "done" ? `<button class="btn btn-amber" onclick="confirmOrderDelivered('${o.id}')">تأكيد الاستلام</button>` : ""}
+      </td>
+    </tr>`;
+}
+
+function renderOrdersTable() {
+  const tbody = document.getElementById("orders-tbody");
+  const filtered = allOrders.filter(o => (o.status || "new") === currentOrderSub)
+                             .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  tbody.innerHTML = filtered.length ? filtered.map(o => orderRow(o, true)).join("")
+    : `<tr class="empty-row"><td colspan="7">لا توجد أوردرات هنا حاليًا</td></tr>`;
+
+  const dashTbody = document.getElementById("dash-orders-tbody");
+  const recentNew = allOrders.filter(o => (o.status || "new") === "new")
+                              .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).slice(0, 5);
+  dashTbody.innerHTML = recentNew.length ? recentNew.map(o => `
+    <tr>
+      <td>${o.createdAt ? new Date(o.createdAt).toLocaleString("ar-EG") : "—"}</td>
+      <td>${o.customerName || "—"}</td>
+      <td>${o.customerPhone || "—"}</td>
+      <td>${(o.total ?? 0).toFixed(2)} ج.م</td>
+      <td><button class="btn btn-amber" onclick="confirmOrderDelivered('${o.id}')">تأكيد</button></td>
+    </tr>`).join("") : `<tr class="empty-row"><td colspan="5">لا توجد أوردرات جديدة</td></tr>`;
+}
+
+function updateOrderStats() {
+  const newCount = allOrders.filter(o => (o.status || "new") === "new").length;
+  const doneCount = allOrders.filter(o => o.status === "done").length;
+  const monthCount = allOrders.filter(o => o.createdAt && isSameMonth(o.createdAt)).length;
+  document.getElementById("stat-new").textContent = newCount;
+  document.getElementById("stat-done").textContent = doneCount;
+  document.getElementById("stat-month").textContent = monthCount;
+  document.getElementById("badge-new").textContent = newCount ? `(${newCount})` : "";
+  document.getElementById("sidebar-new-pip").textContent = newCount || "";
+}
+
+window.confirmOrderDelivered = function (id) {
+  confirmOrderDelivered(id).then(() => showToast("تم تأكيد استلام الأوردر"));
+};
+window.editProduct = editProduct;
+window.removeProduct = removeProduct;
+window.viewProduct = viewProduct;
+
+/* ---------------- تشغيل اللوحة + التنبيه الصوتي على أوردر جديد ---------------- */
+let ordersInitialized = false;
+let seenOrderIds = new Set();
+
+function initDashboard() {
+  resetForm();
+
+  db.ref("products").on("value", snap => {
+    const val = snap.val() || {};
+    allProducts = [];
+    Object.entries(val).forEach(([cat, prods]) => {
+      Object.entries(prods || {}).forEach(([id, p]) => allProducts.push({ id, category: cat, ...p }));
+    });
+    renderProductsTable();
+  });
+
+  db.ref("orders").once("value").then(snap => {
+    const val = snap.val() || {};
+    Object.keys(val).forEach(id => seenOrderIds.add(id));
+    allOrders = Object.entries(val).map(([id, o]) => ({ id, ...o }));
+    updateOrderStats();
+    renderOrdersTable();
+    ordersInitialized = true;
+
+    db.ref("orders").on("value", snap2 => {
+      const val2 = snap2.val() || {};
+      const newList = Object.entries(val2).map(([id, o]) => ({ id, ...o }));
+      if (ordersInitialized) {
+        newList.forEach(o => {
+          if (!seenOrderIds.has(o.id)) {
+            seenOrderIds.add(o.id);
+            playAlertSound();
+            showToast("📦 وصل أوردر جديد!");
+          }
+        });
+      }
+      allOrders = newList;
+      updateOrderStats();
+      renderOrdersTable();
+    });
+  });
+}
+</script>
+</body>
+</html>
