@@ -2,21 +2,24 @@
    SphinxPack — لوحة تحكم الأدمن
    ========================================================= */
 
-const ADMIN_PASSWORD = "abbasino10";
-const AUTH_KEY = "sphinxpack_admin_auth";
+/* ---------- تسجيل الدخول (Firebase Authentication حقيقي، مش باسورد مخزّن في قاعدة البيانات) ---------- */
+const ADMIN_EMAIL = "admin@sphinxpack.app"; // إيميل ثابت داخلي لحساب الأدمن، مش هيستقبل رسائل فعلية
 
-/* ---------- تسجيل الدخول ---------- */
-function isAuthed() { return sessionStorage.getItem(AUTH_KEY) === "1"; }
-function login(pass) {
-  if (pass === ADMIN_PASSWORD) {
-    sessionStorage.setItem(AUTH_KEY, "1");
-    return true;
-  }
-  return false;
+function isAuthed() { return !!firebase.auth().currentUser; }
+
+function doLoginWithPassword(pass) {
+  return firebase.auth().signInWithEmailAndPassword(ADMIN_EMAIL, pass);
 }
+
 function logout() {
-  sessionStorage.removeItem(AUTH_KEY);
-  location.reload();
+  firebase.auth().signOut();
+}
+
+function changeAdminPassword(currentPass, newPass) {
+  const cred = firebase.auth.EmailAuthProvider.credential(ADMIN_EMAIL, currentPass);
+  return firebase.auth().currentUser
+    .reauthenticateWithCredential(cred)
+    .then(() => firebase.auth().currentUser.updatePassword(newPass));
 }
 
 /* ---------- تنبيه صوتي (Web Audio – بدون ملف صوت خارجي) ---------- */
