@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>سلة الطلبات — SphinxPack</title>
+<link rel="icon" href="assets/images/sphinx-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<header class="site-header" id="site-header"></header>
+
+<div class="page-head">
+  <div class="wrap">
+    <div class="crumbs"><a href="index.html">الرئيسية</a> / سلة الطلبات</div>
+    <h1>سلة الطلبات</h1>
+    <p>راجع طلبك وأدخل بياناتك وابعته لنا مباشرة على واتساب</p>
+  </div>
+</div>
+
+<main class="wrap">
+  <div class="checkout-grid">
+    <div class="panel" id="cart-list-panel">
+      <div id="cart-lines"></div>
+    </div>
+
+    <div class="panel">
+      <h3>بيانات الطلب</h3>
+      <div class="field">
+        <label>الاسم بالكامل</label>
+        <input type="text" id="c-name" placeholder="اكتب اسمك">
+      </div>
+      <div class="field">
+        <label>رقم الهاتف</label>
+        <input type="tel" id="c-phone" placeholder="01xxxxxxxxx">
+      </div>
+      <div class="field">
+        <label>العنوان (اختياري)</label>
+        <input type="text" id="c-address" placeholder="المحافظة / المنطقة">
+      </div>
+      <div class="field">
+        <label>ملاحظات (اختياري)</label>
+        <textarea id="c-notes" rows="2" placeholder="أي تفاصيل إضافية"></textarea>
+      </div>
+
+      <div class="summary-line"><span>عدد القطع</span><span id="sum-count">0</span></div>
+      <div class="summary-line total"><span>الإجمالي</span><span id="sum-total">0 ج.م</span></div>
+
+      <button class="btn btn-wa btn-block" style="margin-top:14px" id="send-btn">
+        إرسال الطلب عبر واتساب
+      </button>
+      <p id="form-error" style="color:#C0392B;font-size:13px;margin-top:8px;display:none">من فضلك أدخل الاسم ورقم الهاتف</p>
+    </div>
+  </div>
+</main>
+
+<footer id="site-footer"></footer>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="assets/firebase-init.js"></script>
+<script src="assets/shop.js"></script>
+<script>
+  mountHeader(null);
+  mountFooter();
+
+  function renderCartPage() {
+    const cart = getCart();
+    const wrap = document.getElementById("cart-lines");
+    if (!cart.length) {
+      wrap.innerHTML = `<p class="empty-note">السلة فاضية — <a href="index.html" style="color:var(--amber-dark);font-weight:700">تصفح الأقسام</a></p>`;
+    } else {
+      wrap.innerHTML = `<h3>محتويات السلة</h3>` + cart.map(l => `
+        <div class="cart-line">
+          <div class="thumb">${l.image ? `<img src="${l.image}" alt="">` : ICONS.bag}</div>
+          <div class="info">
+            <span class="name">${l.name}</span>
+            <span class="cat">${catName(l.category)}</span>
+            <div class="row">
+              <div class="qty-box">
+                <button onclick="setLineQty('${l.id}', ${l.qty - 1})">−</button>
+                <input value="${l.qty}" readonly>
+                <button onclick="setLineQty('${l.id}', ${l.qty + 1})">+</button>
+              </div>
+              <span class="price">${(l.price * l.qty).toFixed(2)} ج.م</span>
+            </div>
+          </div>
+          <button class="remove-line" onclick="removeFromCart('${l.id}')">حذف</button>
+        </div>`).join("");
+    }
+    document.getElementById("sum-count").textContent = cartCount(cart);
+    document.getElementById("sum-total").textContent = cartTotal(cart).toFixed(2) + " ج.م";
+  }
+  renderCartPage();
+
+  document.getElementById("send-btn").addEventListener("click", () => {
+    const name = document.getElementById("c-name").value.trim();
+    const phone = document.getElementById("c-phone").value.trim();
+    const address = document.getElementById("c-address").value.trim();
+    const notes = document.getElementById("c-notes").value.trim();
+    const errEl = document.getElementById("form-error");
+    if (!name || !phone) { errEl.style.display = "block"; return; }
+    errEl.style.display = "none";
+    sendOrderViaWhatsapp({ name, phone, address, notes });
+  });
+</script>
+</body>
+</html>

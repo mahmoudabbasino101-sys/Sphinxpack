@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SphinxPack — الأقسام</title>
+<link rel="icon" href="assets/images/sphinx-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<header class="site-header" id="site-header"></header>
+
+<div class="page-head">
+  <div class="wrap">
+    <div class="crumbs"><a href="index.html">الرئيسية</a> / <span id="crumb-cat">القسم</span></div>
+    <h1 id="cat-title">القسم</h1>
+    <p id="cat-desc"></p>
+  </div>
+</div>
+
+<main class="wrap">
+  <div class="prod-grid" id="prod-grid"></div>
+  <p class="empty-note hidden" id="empty-note">لا توجد منتجات في هذا القسم حاليًا — تابعنا قريبًا.</p>
+</main>
+
+<footer id="site-footer"></footer>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="assets/firebase-init.js"></script>
+<script src="assets/shop.js"></script>
+<script>
+  const params = new URLSearchParams(location.search);
+  const slug = params.get("cat") || CATEGORIES[0].slug;
+  const cat = CATEGORIES.find(c => c.slug === slug) || CATEGORIES[0];
+
+  mountHeader(cat.slug);
+  mountFooter();
+
+  document.title = `${cat.name} — SphinxPack`;
+  document.getElementById("crumb-cat").textContent = cat.name;
+  document.getElementById("cat-title").textContent = cat.name;
+  document.getElementById("cat-desc").textContent = "تصفح كل منتجات " + cat.name + " بالجملة.";
+
+  const grid = document.getElementById("prod-grid");
+  const emptyNote = document.getElementById("empty-note");
+
+  function card(p) {
+    const stockOk = (p.qty ?? 0) > 0;
+    return `
+    <div class="prod-card">
+      <div class="thumb">${p.image ? `<img src="${p.image}" alt="${p.name}">` : ICONS[cat.icon]}</div>
+      <div class="body">
+        <h4>${p.name}</h4>
+        <span class="stock ${stockOk ? "" : "low"}">${stockOk ? "متوفر" : "غير متوفر حاليًا"}</span>
+        <div class="add-row">
+          <div class="qty-box">
+            <button onclick="stepQty('${p.id}',-1)">−</button>
+            <input id="q-${p.id}" value="1" readonly>
+            <button onclick="stepQty('${p.id}',1)">+</button>
+          </div>
+          <button class="btn btn-amber" ${stockOk ? "" : "disabled"} onclick='addFromCard(${safeJson(p)})'>أضف للسلة</button>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  window.stepQty = function (id, delta) {
+    const input = document.getElementById("q-" + id);
+    const v = Math.max(1, parseInt(input.value || "1") + delta);
+    input.value = v;
+  };
+  window.addFromCard = function (p) {
+    const qty = parseInt(document.getElementById("q-" + p.id).value || "1");
+    addToCart(p, qty);
+  };
+
+  loadProducts(cat.slug, list => {
+    if (!list.length) {
+      grid.innerHTML = "";
+      emptyNote.classList.remove("hidden");
+      return;
+    }
+    emptyNote.classList.add("hidden");
+    grid.innerHTML = list.map(card).join("");
+  });
+</script>
+</body>
+</html>
