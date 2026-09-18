@@ -352,11 +352,38 @@
       <section class="view" id="view-settings">
         <h1 class="page-title">الإعدادات</h1>
         <div class="breadcrumb">Admin / Settings</div>
+
+        <div class="card">
+          <h2>أقسام الموقع</h2>
+          <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px">
+            أي قسم تضيفه هنا هيظهر على طول في الصفحة الرئيسية وقائمة الأقسام وفورم إضافة المنتج.
+          </p>
+          <div class="form-row two" style="align-items:end">
+            <div class="field"><label>اسم القسم الجديد</label><input id="new-cat-name" type="text" placeholder="مثال: أدوات تنظيف"></div>
+            <button class="btn-primary" style="height:41px" onclick="addCategory()"><i class="fa-solid fa-plus"></i> إضافة القسم</button>
+          </div>
+          <table style="margin-top:16px">
+            <thead><tr><th>اسم القسم</th><th></th></tr></thead>
+            <tbody id="categories-tbody"><tr class="empty-row"><td colspan="2">جاري التحميل...</td></tr></tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <h2>تغيير كلمة مرور لوحة التحكم</h2>
+          <div class="form-row two">
+            <div class="field"><label>كلمة المرور الحالية</label><input id="cur-pass" type="password"></div>
+            <div class="field"><label>كلمة المرور الجديدة</label><input id="new-pass" type="password"></div>
+          </div>
+          <div class="form-row two">
+            <div class="field"><label>تأكيد كلمة المرور الجديدة</label><input id="confirm-pass" type="password"></div>
+          </div>
+          <button class="btn-dark" onclick="changePassword()">حفظ كلمة المرور الجديدة</button>
+        </div>
+
         <div class="card">
           <h2>معلومات الحساب</h2>
           <p style="font-size:13.5px;color:var(--text-muted);line-height:2">
             رقم واتساب استقبال الطلبات: <strong style="color:var(--text-dark)">01028735709</strong><br>
-            كلمة مرور لوحة التحكم محفوظة داخل كود الموقع (ملف <code>assets/admin.js</code>) — لو حابب تغيّرها، ابعتلي وأساعدك.<br>
             قاعدة البيانات: Firebase Realtime Database.
           </p>
           <button class="btn-ghost" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> تسجيل الخروج</button>
@@ -367,6 +394,8 @@
   </div>
 </div>
 </div>
+
+<div id="fb-error-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#e0455a;color:#fff;padding:12px 20px;text-align:center;font-size:13.5px;z-index:300;"></div>
 
 <!-- ===== مودال مسح الباركود ===== -->
 <div class="scanner-modal" id="scanner-modal">
@@ -384,6 +413,43 @@
 <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script src="assets/admin.js"></script>
 <script>
+/* ---------------- كلمة المرور (مخزّنة في Firebase عشان تتغيّر من أي جهاز) ---------------- */
+const DEFAULT_ADMIN_PASSWORD = "abbasino10";
+let ADMIN_PASSWORD_CACHE = null;
+function getAdminPassword() {
+  if (typeof db === "undefined") return Promise.resolve(DEFAULT_ADMIN_PASSWORD);
+  return db.ref("settings/adminPassword").once("value").then(snap => {
+    let val = snap.val();
+    if (!val) { val = DEFAULT_ADMIN_PASSWORD; db.ref("settings/adminPassword").set(val); }
+    ADMIN_PASSWORD_CACHE = val;
+    return val;
+  }).catch(err => { showFbError(err); return DEFAULT_ADMIN_PASSWORD; });
+}
+function changePassword() {
+  const cur = document.getElementById("cur-pass").value;
+  const neu = document.getElementById("new-pass").value;
+  const conf = document.getElementById("confirm-pass").value;
+  if (cur !== ADMIN_PASSWORD_CACHE) { showToast("كلمة المرور الحالية غلط"); return; }
+  if (!neu || neu.length < 4) { showToast("اكتب كلمة مرور جديدة (٤ حروف على الأقل)"); return; }
+  if (neu !== conf) { showToast("كلمتا المرور الجديدتين مش متطابقتين"); return; }
+  db.ref("settings/adminPassword").set(neu).then(() => {
+    ADMIN_PASSWORD_CACHE = neu;
+    document.getElementById("cur-pass").value = "";
+    document.getElementById("new-pass").value = "";
+    document.getElementById("confirm-pass").value = "";
+    showToast("تم تغيير كلمة المرور بنجاح");
+  }).catch(showFbError);
+}
+
+/* ---------------- تنبيه واضح لو Firebase مش شغال (بدل ما الصفحة تفضل فاضية بصمت) ---------------- */
+function showFbError(err) {
+  console.error(err);
+  const banner = document.getElementById("fb-error-banner");
+  banner.style.display = "block";
+  banner.textContent = "⚠ تعذر الاتصال بقاعدة البيانات (" + (err && err.code ? err.code : "خطأ غير معروف") +
+    ") — تأكد إن صلاحيات Realtime Database (Rules) متظبطة صح، وإن ملف assets/firebase-init.js فيه بيانات مشروعك الصحيحة.";
+}
+
 /* ---------------- تسجيل الدخول ---------------- */
 function showDashboard() {
   document.getElementById("login-screen").classList.add("hidden");
@@ -392,8 +458,12 @@ function showDashboard() {
 }
 function doLogin() {
   const pass = document.getElementById("login-pass").value;
-  if (login(pass)) { showDashboard(); }
-  else document.getElementById("login-error").textContent = "كلمة المرور غير صحيحة";
+  const errEl = document.getElementById("login-error");
+  errEl.textContent = "";
+  getAdminPassword().then(correct => {
+    if (pass === correct) { sessionStorage.setItem("sphinxpack_admin_auth", "1"); showDashboard(); }
+    else errEl.textContent = "كلمة المرور غير صحيحة";
+  });
 }
 if (isAuthed()) showDashboard();
 
@@ -423,7 +493,38 @@ function showToast(msg){
 
 /* ---------------- إعداد اختيار القسم ---------------- */
 const catSelect = document.getElementById("p-cat");
-catSelect.innerHTML = CATEGORIES.map(c => `<option value="${c.slug}">${c.name}</option>`).join("");
+initCategories(() => {
+  catSelect.innerHTML = CATEGORIES.map(c => `<option value="${c.slug}">${c.name}</option>`).join("");
+  renderCategoriesTable();
+});
+
+/* ---------------- إدارة الأقسام (إضافة/حذف) ---------------- */
+function renderCategoriesTable() {
+  const tbody = document.getElementById("categories-tbody");
+  if (!tbody) return;
+  tbody.innerHTML = CATEGORIES.map(c => `
+    <tr>
+      <td>${c.name}</td>
+      <td class="row-actions"><i class="fa-solid fa-trash-can" title="حذف القسم" onclick='deleteCategory(${safeJson(c)})'></i></td>
+    </tr>`).join("");
+}
+function addCategory() {
+  const nameInput = document.getElementById("new-cat-name");
+  const name = nameInput.value.trim();
+  if (!name) { showToast("اكتب اسم القسم الأول"); return; }
+  const slug = "cat-" + Date.now();
+  db.ref("categories/" + slug).set({ name, icon: "box" }).then(() => {
+    nameInput.value = "";
+    showToast("تم إضافة القسم");
+  }).catch(showFbError);
+}
+function deleteCategory(c) {
+  if (CATEGORIES.length <= 1) { showToast("لازم يفضل قسم واحد على الأقل"); return; }
+  if (!confirm(`متأكد من حذف قسم "${c.name}"؟ (المنتجات اللي جواه هتفضل في قاعدة البيانات بس مش هتظهر)`)) return;
+  db.ref("categories/" + c.slug).remove().catch(showFbError);
+}
+window.addCategory = addCategory;
+window.deleteCategory = deleteCategory;
 
 function safeJson(obj){ return JSON.stringify(obj).replace(/'/g,"&#39;").replace(/"/g,"&quot;"); }
 
@@ -600,26 +701,20 @@ window.editProduct = editProduct;
 window.removeProduct = removeProduct;
 window.viewProduct = viewProduct;
 
-/* ---------------- العملاء (مستخرجين من الأوردرات) ---------------- */
+/* ---------------- العملاء (من سجل customers/ الحقيقي في Firebase) ---------------- */
+let allCustomers = [];
 function renderCustomersTable() {
   const tbody = document.getElementById("customers-tbody");
-  const map = {};
-  allOrders.forEach(o => {
-    const key = (o.customerPhone || o.customerName || "غير معروف").trim();
-    if (!map[key]) map[key] = { name:o.customerName||"—", phone:o.customerPhone||"—", count:0, total:0, last:0 };
-    map[key].count += 1;
-    map[key].total += (o.total || 0);
-    map[key].last = Math.max(map[key].last, o.createdAt || 0);
-  });
-  const list = Object.values(map).sort((a,b)=>b.last-a.last);
+  if (!tbody) return;
+  const list = allCustomers.slice().sort((a,b) => (b.lastOrderAt||0) - (a.lastOrderAt||0));
   if (!list.length) { tbody.innerHTML = `<tr class="empty-row"><td colspan="6">لا يوجد عملاء بعد</td></tr>`; return; }
   tbody.innerHTML = list.map(c => `
     <tr>
-      <td>${c.name}</td>
-      <td>${c.phone !== "—" ? `<a href="https://wa.me/2${c.phone.replace(/^0/,'')}" target="_blank">${c.phone}</a>` : "—"}</td>
-      <td>${c.count}</td>
-      <td>${c.total.toFixed(2)} ج.م</td>
-      <td>${c.last ? new Date(c.last).toLocaleDateString("ar-EG") : "—"}</td>
+      <td>${c.name || "—"}</td>
+      <td>${c.phone ? `<a href="https://wa.me/2${String(c.phone).replace(/^0/,'')}" target="_blank">${c.phone}</a>` : "—"}</td>
+      <td>${c.ordersCount || 0}</td>
+      <td>${(c.totalSpent||0).toFixed(2)} ج.م</td>
+      <td>${c.lastOrderAt ? new Date(c.lastOrderAt).toLocaleDateString("ar-EG") : "—"}</td>
       <td></td>
     </tr>`).join("");
 }
@@ -629,6 +724,7 @@ let ordersInitialized = false;
 let seenOrderIds = new Set();
 function initDashboard() {
   resetForm();
+
   db.ref("products").on("value", snap => {
     const val = snap.val() || {};
     allProducts = [];
@@ -636,7 +732,14 @@ function initDashboard() {
       Object.entries(prods||{}).forEach(([id,p]) => allProducts.push({ id, category:cat, ...p }));
     });
     renderProductsTable();
-  });
+  }, showFbError);
+
+  db.ref("customers").on("value", snap => {
+    const val = snap.val() || {};
+    allCustomers = Object.values(val);
+    renderCustomersTable();
+  }, showFbError);
+
   db.ref("orders").once("value").then(snap => {
     const val = snap.val() || {};
     Object.keys(val).forEach(id => seenOrderIds.add(id));
@@ -651,8 +754,8 @@ function initDashboard() {
         });
       }
       allOrders = newList; updateOrderStats(); renderOrdersTable();
-    });
-  });
+    }, showFbError);
+  }).catch(showFbError);
 }
 </script>
 </body>
