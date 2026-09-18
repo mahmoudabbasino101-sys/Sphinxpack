@@ -2,7 +2,25 @@
    SphinxPack — منطق المتجر المشترك (كل الصفحات العامة)
    ========================================================= */
 
-const WHATSAPP_NUMBER = "201028735709"; // 0102... بصيغة دولية بدون الصفر وبدون +
+const DEFAULT_WHATSAPP_NUMBER = "201028735709"; // بصيغة دولية بدون + ، يستخدم في روابط wa.me
+let WHATSAPP_NUMBER = DEFAULT_WHATSAPP_NUMBER;
+let SOCIAL_LINKS = []; // [{key,name,url}] بتتحمل من الإعدادات
+
+function localPhone(intl) {
+  const digits = String(intl || DEFAULT_WHATSAPP_NUMBER).replace(/[^0-9]/g, "");
+  return digits.startsWith("20") ? "0" + digits.slice(2) : digits;
+}
+
+/* تحميل إعدادات المتجر (رقم واتساب + روابط السوشيال ميديا) من Firebase */
+function initSettings(callback) {
+  if (typeof db === "undefined") { callback(); return; }
+  db.ref("settings").on("value", snap => {
+    const val = snap.val() || {};
+    WHATSAPP_NUMBER = val.whatsappNumber || DEFAULT_WHATSAPP_NUMBER;
+    SOCIAL_LINKS = val.socialLinks ? Object.entries(val.socialLinks).map(([key, s]) => ({ key, ...s })) : [];
+    callback();
+  });
+}
 
 const DEFAULT_CATEGORIES = [
   { slug: "plastic-cups", name: "أكواب بلاستيكية", icon: "cup" },
@@ -274,8 +292,8 @@ function mountHeader(activeSlug) {
   if (!el) return;
   el.innerHTML = `
     <div class="topbar"><div class="wrap">
-      <a href="https://wa.me/${WHATSAPP_NUMBER}" target="_blank">واتساب: 010 2873 5709</a>
-      <a href="tel:01028735709">اتصل بنا: 01028735709</a>
+      <a href="https://wa.me/${WHATSAPP_NUMBER}" target="_blank">واتساب: ${localPhone(WHATSAPP_NUMBER)}</a>
+      <a href="tel:${localPhone(WHATSAPP_NUMBER)}">اتصل بنا: ${localPhone(WHATSAPP_NUMBER)}</a>
     </div></div>
     <div class="nav-row wrap">
       <a href="index.html" class="logo">
@@ -311,8 +329,8 @@ function mountFooter() {
       </div>
       <div>
         <h4>تواصل معنا</h4>
-        <a href="https://wa.me/${WHATSAPP_NUMBER}" target="_blank">واتساب: 01028735709</a>
-        <a href="tel:01028735709">اتصال: 01028735709</a>
+        <a href="https://wa.me/${WHATSAPP_NUMBER}" target="_blank">واتساب: ${localPhone(WHATSAPP_NUMBER)}</a>
+        <a href="tel:${localPhone(WHATSAPP_NUMBER)}">اتصال: ${localPhone(WHATSAPP_NUMBER)}</a>
       </div>
     </div>
     <div class="bottom">© ${new Date().getFullYear()} SphinxPack — جميع الحقوق محفوظة</div>
