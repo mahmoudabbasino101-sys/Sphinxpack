@@ -369,6 +369,33 @@
         </div>
 
         <div class="card">
+          <h2>رقم التواصل (واتساب / اتصال)</h2>
+          <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px">
+            الرقم ده هو اللي بيستقبل الطلبات عبر واتساب، والظاهر في الموقع كله.
+          </p>
+          <div class="form-row two" style="align-items:end">
+            <div class="field"><label>رقم الهاتف (مثال: 01028735709)</label><input id="contact-number-input" type="text" placeholder="01028735709"></div>
+            <button class="btn-primary" style="height:41px" onclick="saveContactNumber()">حفظ الرقم</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>روابط التواصل الاجتماعي</h2>
+          <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px">
+            أي رابط تضيفه هنا هيظهر في قسم "تواصل معنا" بالصفحة الرئيسية.
+          </p>
+          <div class="form-row two" style="align-items:end">
+            <div class="field"><label>اسم المنصة</label><input id="new-social-name" type="text" placeholder="مثال: فيسبوك"></div>
+            <div class="field"><label>الرابط</label><input id="new-social-url" type="text" placeholder="https://facebook.com/..."></div>
+          </div>
+          <button class="btn-primary" onclick="addSocialLink()" style="margin-bottom:16px"><i class="fa-solid fa-plus"></i> إضافة الرابط</button>
+          <table>
+            <thead><tr><th>المنصة</th><th>الرابط</th><th></th></tr></thead>
+            <tbody id="social-links-tbody"><tr class="empty-row"><td colspan="3">لا توجد روابط بعد</td></tr></tbody>
+          </table>
+        </div>
+
+        <div class="card">
           <h2>تغيير كلمة مرور لوحة التحكم</h2>
           <div class="form-row two">
             <div class="field"><label>كلمة المرور الحالية</label><input id="cur-pass" type="password"></div>
@@ -383,7 +410,6 @@
         <div class="card">
           <h2>معلومات الحساب</h2>
           <p style="font-size:13.5px;color:var(--text-muted);line-height:2">
-            رقم واتساب استقبال الطلبات: <strong style="color:var(--text-dark)">01028735709</strong><br>
             قاعدة البيانات: Firebase Realtime Database.
           </p>
           <button class="btn-ghost" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> تسجيل الخروج</button>
@@ -525,6 +551,49 @@ function deleteCategory(c) {
 }
 window.addCategory = addCategory;
 window.deleteCategory = deleteCategory;
+
+/* ---------------- إعدادات: رقم التواصل + روابط السوشيال ميديا ---------------- */
+initSettings(() => {
+  document.getElementById("contact-number-input").value = localPhone(WHATSAPP_NUMBER);
+  renderSocialLinksTable();
+});
+function saveContactNumber() {
+  const raw = document.getElementById("contact-number-input").value.trim().replace(/[^0-9]/g, "");
+  if (raw.length < 10) { showToast("اكتب رقم هاتف صحيح"); return; }
+  const intl = raw.startsWith("20") ? raw : "20" + raw.replace(/^0/, "");
+  db.ref("settings/whatsappNumber").set(intl).then(() => showToast("تم حفظ الرقم")).catch(showFbError);
+}
+function renderSocialLinksTable() {
+  const tbody = document.getElementById("social-links-tbody");
+  if (!tbody) return;
+  if (!SOCIAL_LINKS.length) { tbody.innerHTML = `<tr class="empty-row"><td colspan="3">لا توجد روابط بعد</td></tr>`; return; }
+  tbody.innerHTML = SOCIAL_LINKS.map(s => `
+    <tr>
+      <td>${s.name}</td>
+      <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><a href="${s.url}" target="_blank">${s.url}</a></td>
+      <td class="row-actions"><i class="fa-solid fa-trash-can" title="حذف الرابط" onclick="deleteSocialLink('${s.key}')"></i></td>
+    </tr>`).join("");
+}
+function addSocialLink() {
+  const nameInput = document.getElementById("new-social-name");
+  const urlInput = document.getElementById("new-social-url");
+  const name = nameInput.value.trim();
+  let url = urlInput.value.trim();
+  if (!name || !url) { showToast("اكتب اسم المنصة والرابط"); return; }
+  if (!/^https?:\/\//i.test(url)) url = "https://" + url;
+  const key = "s" + Date.now();
+  db.ref("settings/socialLinks/" + key).set({ name, url }).then(() => {
+    nameInput.value = ""; urlInput.value = "";
+    showToast("تم إضافة الرابط");
+  }).catch(showFbError);
+}
+function deleteSocialLink(key) {
+  if (!confirm("متأكد من حذف الرابط ده؟")) return;
+  db.ref("settings/socialLinks/" + key).remove().catch(showFbError);
+}
+window.saveContactNumber = saveContactNumber;
+window.addSocialLink = addSocialLink;
+window.deleteSocialLink = deleteSocialLink;
 
 function safeJson(obj){ return JSON.stringify(obj).replace(/'/g,"&#39;").replace(/"/g,"&quot;"); }
 
@@ -670,7 +739,8 @@ function renderOrdersTable() {
       <td class="order-detail">${(o.items||[]).map(i=>`<div>${i.name} × ${i.qty}</div>`).join("")}</td>
       <td>${(o.total??0).toFixed(2)} ج.م</td>
       <td><span class="status-pill ${o.status==="done"?"done":"new"}">${o.status==="done"?"تم التسليم":"جديد"}</span></td>
-      <td>${o.status!=="done" ? `<button class="btn-primary" style="padding:7px 12px;font-size:12.5px" onclick="confirmOrderDelivered('${o.id}')">تأكيد الاستلام</button>` : ""}</td>
+      <td>${o.status!=="done" ? `<button class="btn-primary" style="padding:7px 12px;font-size:12.5px" onclick="handleConfirmOrder('${o.id}')">تأكيد الاستلام</button>` : ""}
+        <i class="fa-solid fa-trash-can" title="حذف الأوردر" style="cursor:pointer;color:var(--red);margin-right:10px" onclick="handleDeleteOrder('${o.id}')"></i></td>
     </tr>`).join("") : `<tr class="empty-row"><td colspan="7">لا توجد أوردرات هنا حاليًا</td></tr>`;
 
   const dashTbody = document.getElementById("dash-orders-tbody");
@@ -681,7 +751,7 @@ function renderOrdersTable() {
       <td>${o.customerName || "—"}</td>
       <td>${o.customerPhone || "—"}</td>
       <td>${(o.total??0).toFixed(2)} ج.م</td>
-      <td><button class="btn-primary" style="padding:7px 12px;font-size:12.5px" onclick="confirmOrderDelivered('${o.id}')">تأكيد</button></td>
+      <td><button class="btn-primary" style="padding:7px 12px;font-size:12.5px" onclick="handleConfirmOrder('${o.id}')">تأكيد</button></td>
     </tr>`).join("") : `<tr class="empty-row"><td colspan="5">لا توجد أوردرات جديدة</td></tr>`;
 
   renderCustomersTable();
@@ -696,7 +766,11 @@ function updateOrderStats() {
   document.getElementById("badge-new").textContent = newCount ? `(${newCount})` : "";
   document.getElementById("sidebar-new-pip").textContent = newCount || "";
 }
-window.confirmOrderDelivered = function (id) { confirmOrderDelivered(id).then(() => showToast("تم تأكيد استلام الأوردر")); };
+window.handleConfirmOrder = function (id) { confirmOrderDelivered(id).then(() => showToast("تم تأكيد استلام الأوردر")).catch(showFbError); };
+window.handleDeleteOrder = function (id) {
+  if (!confirm("متأكد من حذف الأوردر ده نهائيًا؟")) return;
+  db.ref("orders/" + id).remove().then(() => showToast("تم حذف الأوردر")).catch(showFbError);
+};
 window.editProduct = editProduct;
 window.removeProduct = removeProduct;
 window.viewProduct = viewProduct;
@@ -715,9 +789,13 @@ function renderCustomersTable() {
       <td>${c.ordersCount || 0}</td>
       <td>${(c.totalSpent||0).toFixed(2)} ج.م</td>
       <td>${c.lastOrderAt ? new Date(c.lastOrderAt).toLocaleDateString("ar-EG") : "—"}</td>
-      <td></td>
+      <td><i class="fa-solid fa-trash-can" title="حذف العميل" style="cursor:pointer;color:var(--red)" onclick="handleDeleteCustomer('${c.key}')"></i></td>
     </tr>`).join("");
 }
+window.handleDeleteCustomer = function (key) {
+  if (!confirm("متأكد من حذف بيانات العميل ده؟")) return;
+  db.ref("customers/" + key).remove().then(() => showToast("تم حذف العميل")).catch(showFbError);
+};
 
 /* ---------------- تشغيل اللوحة + التنبيه الصوتي ---------------- */
 let ordersInitialized = false;
@@ -736,7 +814,7 @@ function initDashboard() {
 
   db.ref("customers").on("value", snap => {
     const val = snap.val() || {};
-    allCustomers = Object.values(val);
+    allCustomers = Object.entries(val).map(([key, c]) => ({ key, ...c }));
     renderCustomersTable();
   }, showFbError);
 
