@@ -434,37 +434,28 @@
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="assets/firebase-init.js"></script>
 <script src="assets/shop.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script src="assets/admin.js"></script>
 <script>
-/* ---------------- كلمة المرور (مخزّنة في Firebase عشان تتغيّر من أي جهاز) ---------------- */
-const DEFAULT_ADMIN_PASSWORD = "abbasino10";
-let ADMIN_PASSWORD_CACHE = null;
-function getAdminPassword() {
-  if (typeof db === "undefined") return Promise.resolve(DEFAULT_ADMIN_PASSWORD);
-  return db.ref("settings/adminPassword").once("value").then(snap => {
-    let val = snap.val();
-    if (!val) { val = DEFAULT_ADMIN_PASSWORD; db.ref("settings/adminPassword").set(val); }
-    ADMIN_PASSWORD_CACHE = val;
-    return val;
-  }).catch(err => { showFbError(err); return DEFAULT_ADMIN_PASSWORD; });
-}
+/* ---------------- تغيير كلمة المرور (عبر Firebase Authentication الحقيقي) ---------------- */
 function changePassword() {
   const cur = document.getElementById("cur-pass").value;
   const neu = document.getElementById("new-pass").value;
   const conf = document.getElementById("confirm-pass").value;
-  if (cur !== ADMIN_PASSWORD_CACHE) { showToast("كلمة المرور الحالية غلط"); return; }
-  if (!neu || neu.length < 4) { showToast("اكتب كلمة مرور جديدة (٤ حروف على الأقل)"); return; }
+  if (!neu || neu.length < 6) { showToast("كلمة المرور الجديدة لازم تكون ٦ حروف على الأقل"); return; }
   if (neu !== conf) { showToast("كلمتا المرور الجديدتين مش متطابقتين"); return; }
-  db.ref("settings/adminPassword").set(neu).then(() => {
-    ADMIN_PASSWORD_CACHE = neu;
+  changeAdminPassword(cur, neu).then(() => {
     document.getElementById("cur-pass").value = "";
     document.getElementById("new-pass").value = "";
     document.getElementById("confirm-pass").value = "";
     showToast("تم تغيير كلمة المرور بنجاح");
-  }).catch(showFbError);
+  }).catch(err => {
+    if (err.code === "auth/wrong-password" || err.code === "auth/invalid-credential" || err.code === "auth/invalid-login-credentials") showToast("كلمة المرور الحالية غلط");
+    else showFbError(err);
+  });
 }
 
 /* ---------------- تنبيه واضح لو Firebase مش شغال (بدل ما الصفحة تفضل فاضية بصمت) ---------------- */
@@ -476,22 +467,26 @@ function showFbError(err) {
     ") — تأكد إن صلاحيات Realtime Database (Rules) متظبطة صح، وإن ملف assets/firebase-init.js فيه بيانات مشروعك الصحيحة.";
 }
 
-/* ---------------- تسجيل الدخول ---------------- */
+/* ---------------- تسجيل الدخول (Firebase Authentication) ---------------- */
 function showDashboard() {
   document.getElementById("login-screen").classList.add("hidden");
   document.getElementById("dashboard").classList.remove("hidden");
   initDashboard();
 }
+function showLoginScreen() {
+  document.getElementById("dashboard").classList.add("hidden");
+  document.getElementById("login-screen").classList.remove("hidden");
+  document.getElementById("login-pass").value = "";
+}
 function doLogin() {
   const pass = document.getElementById("login-pass").value;
   const errEl = document.getElementById("login-error");
   errEl.textContent = "";
-  getAdminPassword().then(correct => {
-    if (pass === correct) { sessionStorage.setItem("sphinxpack_admin_auth", "1"); showDashboard(); }
-    else errEl.textContent = "كلمة المرور غير صحيحة";
-  });
+  doLoginWithPassword(pass).catch(() => { errEl.textContent = "كلمة المرور غير صحيحة"; });
 }
-if (isAuthed()) showDashboard();
+firebase.auth().onAuthStateChanged(user => {
+  if (user) showDashboard(); else showLoginScreen();
+});
 
 /* ---------------- تنقل السايدبار ---------------- */
 document.querySelectorAll(".nav-item[data-view]").forEach(btn => {
