@@ -322,6 +322,12 @@
       <section class="view" id="view-orders">
         <h1 class="page-title">إدارة الأوردرات</h1>
         <div class="breadcrumb">Admin / Orders</div>
+        <div class="toolbar">
+          <div class="search-box">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="order-search" placeholder="ابحث برقم الأوردر، اسم العميل، أو رقم الهاتف...">
+          </div>
+        </div>
         <div class="subtabs">
           <button class="active" data-sub="new">جديدة <span id="badge-new"></span></button>
           <button data-sub="done">تم التسليم</button>
@@ -329,8 +335,8 @@
         </div>
         <div class="card">
           <table>
-            <thead><tr><th>التاريخ</th><th>العميل</th><th>الهاتف</th><th>تفاصيل الطلب</th><th>الإجمالي</th><th>الحالة</th><th></th></tr></thead>
-            <tbody id="orders-tbody"><tr class="empty-row"><td colspan="7">جاري التحميل...</td></tr></tbody>
+            <thead><tr><th>#</th><th>التاريخ</th><th>العميل</th><th>الهاتف</th><th>تفاصيل الطلب</th><th>الإجمالي</th><th>الحالة</th><th></th></tr></thead>
+            <tbody id="orders-tbody"><tr class="empty-row"><td colspan="8">جاري التحميل...</td></tr></tbody>
           </table>
         </div>
       </section>
@@ -422,6 +428,36 @@
 </div>
 
 <div id="fb-error-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#e0455a;color:#fff;padding:12px 20px;text-align:center;font-size:13.5px;z-index:300;"></div>
+
+<!-- ===== مودال تفاصيل الأوردر ===== -->
+<div class="scanner-modal" id="order-modal">
+  <div class="scanner-box" style="max-width:480px">
+    <h4>تفاصيل الأوردر <button class="close-x" onclick="closeOrderModal()">×</button></h4>
+    <div id="order-modal-body" style="margin-top:12px;font-size:13.5px;line-height:1.9"></div>
+    <div style="display:flex;gap:10px;margin-top:16px">
+      <button class="btn-dark" style="flex:1" onclick="printOrderInvoice()"><i class="fa-solid fa-print"></i> طباعة الفاتورة</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== منطقة الطباعة (مخفية إلا وقت الطباعة) ===== -->
+<div id="print-invoice" style="display:none"></div>
+<style>
+  @media print {
+    body * { visibility: hidden; }
+    #print-invoice, #print-invoice * { visibility: visible; }
+    #print-invoice { display:block !important; position:absolute; top:0; right:0; left:0; padding:24px; }
+    .inv-head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #222;padding-bottom:14px;margin-bottom:18px}
+    .inv-head h2{margin:0;font-size:22px}
+    .inv-head p{margin:2px 0 0;font-size:12.5px;color:#555}
+    .inv-meta{text-align:left;font-size:12.5px}
+    .inv-table{width:100%;border-collapse:collapse;margin:16px 0}
+    .inv-table th,.inv-table td{border:1px solid #ccc;padding:8px;font-size:13px;text-align:right}
+    .inv-total{text-align:left;font-size:16px;font-weight:800;margin-top:8px}
+    .inv-sign{margin-top:60px;display:flex;justify-content:space-between}
+    .inv-sign div{width:45%;border-top:1px solid #333;padding-top:6px;font-size:12.5px;text-align:center}
+  }
+</style>
 
 <!-- ===== مودال مسح الباركود ===== -->
 <div class="scanner-modal" id="scanner-modal">
@@ -724,33 +760,102 @@ document.querySelectorAll('.subtabs button[data-sub]').forEach(btn => {
 });
 function renderOrdersTable() {
   const tbody = document.getElementById("orders-tbody");
-  const filtered = (currentOrderSub === "all" ? allOrders : allOrders.filter(o => (o.status||"new") === currentOrderSub))
+  const q = (document.getElementById("order-search").value || "").trim().toLowerCase();
+  let filtered = (currentOrderSub === "all" ? allOrders : allOrders.filter(o => (o.status||"new") === currentOrderSub))
                     .sort((a,b) => (b.createdAt||0)-(a.createdAt||0));
+  if (q) {
+    filtered = filtered.filter(o =>
+      String(o.orderNumber||"").includes(q) ||
+      (o.customerName||"").toLowerCase().includes(q) ||
+      (o.customerPhone||"").toLowerCase().includes(q)
+    );
+  }
   tbody.innerHTML = filtered.length ? filtered.map(o => `
-    <tr>
+    <tr style="cursor:pointer" onclick="openOrderModal('${o.id}')">
+      <td>#${o.orderNumber || "—"}</td>
       <td>${o.createdAt ? new Date(o.createdAt).toLocaleString("ar-EG") : "—"}</td>
       <td>${o.customerName || "—"}</td>
-      <td>${o.customerPhone ? `<a href="https://wa.me/2${o.customerPhone.replace(/^0/,'')}" target="_blank">${o.customerPhone}</a>` : "—"}</td>
+      <td>${o.customerPhone || "—"}</td>
       <td class="order-detail">${(o.items||[]).map(i=>`<div>${i.name} × ${i.qty}</div>`).join("")}</td>
       <td>${(o.total??0).toFixed(2)} ج.م</td>
       <td><span class="status-pill ${o.status==="done"?"done":"new"}">${o.status==="done"?"تم التسليم":"جديد"}</span></td>
-      <td>${o.status!=="done" ? `<button class="btn-primary" style="padding:7px 12px;font-size:12.5px" onclick="handleConfirmOrder('${o.id}')">تأكيد الاستلام</button>` : ""}
+      <td onclick="event.stopPropagation()">${o.status!=="done" ? `<button class="btn-primary" style="padding:7px 12px;font-size:12.5px" onclick="handleConfirmOrder('${o.id}')">تأكيد الاستلام</button>` : ""}
         <i class="fa-solid fa-trash-can" title="حذف الأوردر" style="cursor:pointer;color:var(--red);margin-right:10px" onclick="handleDeleteOrder('${o.id}')"></i></td>
-    </tr>`).join("") : `<tr class="empty-row"><td colspan="7">لا توجد أوردرات هنا حاليًا</td></tr>`;
+    </tr>`).join("") : `<tr class="empty-row"><td colspan="8">لا توجد أوردرات هنا حاليًا</td></tr>`;
 
   const dashTbody = document.getElementById("dash-orders-tbody");
   const recentNew = allOrders.filter(o=>(o.status||"new")==="new").sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).slice(0,5);
   dashTbody.innerHTML = recentNew.length ? recentNew.map(o => `
-    <tr>
+    <tr style="cursor:pointer" onclick="openOrderModal('${o.id}')">
       <td>${o.createdAt ? new Date(o.createdAt).toLocaleString("ar-EG") : "—"}</td>
       <td>${o.customerName || "—"}</td>
       <td>${o.customerPhone || "—"}</td>
       <td>${(o.total??0).toFixed(2)} ج.م</td>
-      <td><button class="btn-primary" style="padding:7px 12px;font-size:12.5px" onclick="handleConfirmOrder('${o.id}')">تأكيد</button></td>
+      <td onclick="event.stopPropagation()"><button class="btn-primary" style="padding:7px 12px;font-size:12.5px" onclick="handleConfirmOrder('${o.id}')">تأكيد</button></td>
     </tr>`).join("") : `<tr class="empty-row"><td colspan="5">لا توجد أوردرات جديدة</td></tr>`;
 
   renderCustomersTable();
 }
+document.getElementById("order-search").addEventListener("input", renderOrdersTable);
+
+/* ---------------- مودال تفاصيل الأوردر + الطباعة ---------------- */
+let openOrder = null;
+function openOrderModal(id) {
+  const o = allOrders.find(x => x.id === id);
+  if (!o) return;
+  openOrder = o;
+  const body = document.getElementById("order-modal-body");
+  body.innerHTML = `
+    <div><strong>رقم الأوردر:</strong> #${o.orderNumber || "—"}</div>
+    <div><strong>التاريخ:</strong> ${o.createdAt ? new Date(o.createdAt).toLocaleString("ar-EG") : "—"}</div>
+    <div><strong>العميل:</strong> ${o.customerName || "—"}</div>
+    <div><strong>الهاتف:</strong> ${o.customerPhone || "—"}</div>
+    <div><strong>العنوان:</strong> ${o.address || "—"}</div>
+    <div><strong>ملاحظات:</strong> ${o.notes || "—"}</div>
+    <div style="margin-top:10px"><strong>الأصناف:</strong></div>
+    <table style="width:100%;margin-top:6px">
+      <thead><tr><th>الصنف</th><th>الكمية</th><th>السعر</th></tr></thead>
+      <tbody>${(o.items||[]).map(i => `<tr><td>${i.name}</td><td>${i.qty}</td><td>${(i.price||0).toFixed(2)} ج.م</td></tr>`).join("")}</tbody>
+    </table>
+    <div style="margin-top:10px;font-weight:800">الإجمالي: ${(o.total??0).toFixed(2)} ج.م</div>
+  `;
+  document.getElementById("order-modal").classList.add("open");
+}
+function closeOrderModal() {
+  document.getElementById("order-modal").classList.remove("open");
+  openOrder = null;
+}
+function printOrderInvoice() {
+  if (!openOrder) return;
+  const o = openOrder;
+  const rows = (o.items||[]).map(i => `<tr><td>${i.name}</td><td>${i.qty}</td><td>${(i.price||0).toFixed(2)} ج.م</td><td>${((i.price||0)*(i.qty||0)).toFixed(2)} ج.م</td></tr>`).join("");
+  document.getElementById("print-invoice").innerHTML = `
+    <div class="inv-head">
+      <div><h2>SphinxPack</h2><p>مستلزمات التغليف والضيافة</p></div>
+      <div class="inv-meta">
+        <div><strong>فاتورة استلام رقم:</strong> #${o.orderNumber || "—"}</div>
+        <div><strong>التاريخ:</strong> ${o.createdAt ? new Date(o.createdAt).toLocaleString("ar-EG") : "—"}</div>
+      </div>
+    </div>
+    <div><strong>اسم العميل:</strong> ${o.customerName || "—"}</div>
+    <div><strong>رقم الهاتف:</strong> ${o.customerPhone || "—"}</div>
+    <div><strong>العنوان:</strong> ${o.address || "—"}</div>
+    <table class="inv-table">
+      <thead><tr><th>الصنف</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div class="inv-total">الإجمالي الكلي: ${(o.total??0).toFixed(2)} ج.م</div>
+    <div class="inv-sign">
+      <div>توقيع العميل باستلام الطلب</div>
+      <div>توقيع المندوب/الموظف</div>
+    </div>
+  `;
+  window.print();
+}
+window.openOrderModal = openOrderModal;
+window.closeOrderModal = closeOrderModal;
+window.printOrderInvoice = printOrderInvoice;
+
 function updateOrderStats() {
   const newCount = allOrders.filter(o=>(o.status||"new")==="new").length;
   const doneCount = allOrders.filter(o=>o.status==="done").length;

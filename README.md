@@ -57,6 +57,10 @@
     "customers": {
       ".read": "auth != null",
       ".write": true
+    },
+    "counters": {
+      ".read": true,
+      ".write": true
     }
   }
 }
