@@ -224,7 +224,11 @@ function pushOrderToFirebase(cart, customer) {
     createdAt: Date.now(),
   };
   upsertCustomer(customer, order.total);
-  return db.ref("orders").push(order);
+  /* رقم تسلسلي لكل أوردر (١، ٢، ٣...) عشان يسهل البحث والمتابعة */
+  return db.ref("counters/orders").transaction(cur => (cur || 0) + 1).then(result => {
+    order.orderNumber = result.snapshot.val();
+    return db.ref("orders").push(order);
+  });
 }
 
 /* حفظ/تحديث بيانات العميل (الاسم والهاتف) كل ما حد يعمل أوردر */
