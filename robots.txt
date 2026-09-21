@@ -1,0 +1,5 @@
+User-agent: *
+Disallow: /admin.html
+Allow: /
+
+Sitemap: https://mahmoudabbasino101-sys.github.io/Sphinxpack/sitemap.xml
