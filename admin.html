@@ -387,6 +387,18 @@
         </div>
 
         <div class="card">
+          <h2>الدفع الإلكتروني (Paymob)</h2>
+          <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px">
+            نسبة العربون ورقم المحفظة اللي بيظهروا للعميل في صفحة السلة عند اختيار طريقة الدفع.
+          </p>
+          <div class="form-row two" style="align-items:end">
+            <div class="field"><label>نسبة العربون % (من الإجمالي)</label><input id="deposit-percent-input" type="number" min="1" max="100" placeholder="25"></div>
+            <div class="field"><label>رقم المحفظة / فودافون كاش</label><input id="wallet-number-input" type="text" placeholder="01028735709"></div>
+          </div>
+          <button class="btn-primary" onclick="savePaymentSettings()">حفظ إعدادات الدفع</button>
+        </div>
+
+        <div class="card">
           <h2>روابط التواصل الاجتماعي</h2>
           <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px">
             أي رابط تضيفه هنا هيظهر في قسم "تواصل معنا" بالصفحة الرئيسية.
@@ -587,8 +599,21 @@ window.deleteCategory = deleteCategory;
 /* ---------------- إعدادات: رقم التواصل + روابط السوشيال ميديا ---------------- */
 initSettings(() => {
   document.getElementById("contact-number-input").value = localPhone(WHATSAPP_NUMBER);
+  document.getElementById("deposit-percent-input").value = DEPOSIT_PERCENT;
+  document.getElementById("wallet-number-input").value = WALLET_NUMBER;
   renderSocialLinksTable();
 });
+function savePaymentSettings() {
+  const pct = parseInt(document.getElementById("deposit-percent-input").value || "25");
+  const wallet = document.getElementById("wallet-number-input").value.trim().replace(/[^0-9]/g, "");
+  if (pct < 1 || pct > 100) { showToast("نسبة العربون لازم تكون بين 1 و 100"); return; }
+  if (wallet.length < 10) { showToast("اكتب رقم محفظة صحيح"); return; }
+  Promise.all([
+    db.ref("settings/depositPercent").set(pct),
+    db.ref("settings/walletNumber").set(wallet),
+  ]).then(() => showToast("تم حفظ إعدادات الدفع")).catch(showFbError);
+}
+window.savePaymentSettings = savePaymentSettings;
 function saveContactNumber() {
   const raw = document.getElementById("contact-number-input").value.trim().replace(/[^0-9]/g, "");
   if (raw.length < 10) { showToast("اكتب رقم هاتف صحيح"); return; }
@@ -628,6 +653,12 @@ window.addSocialLink = addSocialLink;
 window.deleteSocialLink = deleteSocialLink;
 
 function safeJson(obj){ return JSON.stringify(obj).replace(/'/g,"&#39;").replace(/"/g,"&quot;"); }
+function paymentMethodLabel(m) {
+  return { cod: "كاش عند الاستلام", wallet: "تحويل محفظة", deposit: "عربون أونلاين", full: "دفع كامل أونلاين" }[m] || "كاش عند الاستلام";
+}
+function paymentStatusLabel(s) {
+  return { paid: "مدفوع", pending: "في انتظار الدفع", failed: "فشل الدفع", unpaid: "غير مدفوع" }[s] || "غير مدفوع";
+}
 
 /* ---------------- معاينة الصورة ---------------- */
 let pendingImageBase64 = "";
@@ -808,6 +839,7 @@ function openOrderModal(id) {
   const body = document.getElementById("order-modal-body");
   body.innerHTML = `
     <div><strong>رقم الأوردر:</strong> #${o.orderNumber || "—"}</div>
+    <div><strong>طريقة الدفع:</strong> ${paymentMethodLabel(o.paymentMethod)} ${o.paymentStatus ? `<span class="status-pill ${o.paymentStatus==='paid'?'ok':(o.paymentStatus==='pending'?'new':'low')}" style="margin-right:6px">${paymentStatusLabel(o.paymentStatus)}</span>` : ""}</div>
     <div><strong>التاريخ:</strong> ${o.createdAt ? new Date(o.createdAt).toLocaleString("ar-EG") : "—"}</div>
     <div><strong>العميل:</strong> ${o.customerName || "—"}</div>
     <div><strong>الهاتف:</strong> ${o.customerPhone || "—"}</div>

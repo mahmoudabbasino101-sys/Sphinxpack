@@ -46,13 +46,28 @@
         <textarea id="c-notes" rows="2" placeholder="أي تفاصيل إضافية"></textarea>
       </div>
 
+      <div class="field">
+        <label>طريقة الدفع</label>
+        <div id="payment-options" style="display:flex;flex-direction:column;gap:8px">
+          <label class="pay-opt"><input type="radio" name="pay" value="cod" checked> الدفع عند الاستلام (كاش)</label>
+          <label class="pay-opt"><input type="radio" name="pay" value="wallet"> تحويل على محفظة / فودافون كاش</label>
+          <label class="pay-opt"><input type="radio" name="pay" value="deposit"> دفع عربون <span id="deposit-label"></span> أونلاين</label>
+          <label class="pay-opt"><input type="radio" name="pay" value="full"> دفع المبلغ كامل أونلاين</label>
+        </div>
+        <div id="wallet-note" style="display:none;background:#f6f3ec;border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-top:8px;font-size:13px">
+          حوّل المبلغ على رقم <strong id="wallet-number-text">01028735709</strong> (فودافون كاش)، وابعت الطلب وهنأكده معاك.
+        </div>
+      </div>
+
       <div class="summary-line"><span>عدد القطع</span><span id="sum-count">0</span></div>
       <div class="summary-line total"><span>الإجمالي</span><span id="sum-total">0 ج.م</span></div>
+      <div class="summary-line" id="deposit-summary-line" style="display:none"><span>المطلوب دفعه الآن (عربون)</span><span id="sum-deposit">0 ج.م</span></div>
 
       <button class="btn btn-wa btn-block" style="margin-top:14px" id="send-btn">
         إرسال الطلب عبر واتساب
       </button>
       <p id="form-error" style="color:#C0392B;font-size:13px;margin-top:8px;display:none">من فضلك أدخل الاسم ورقم الهاتف</p>
+      <p id="pay-status" style="color:var(--kraft);font-size:13px;margin-top:8px;display:none"></p>
     </div>
   </div>
 </main>
@@ -95,8 +110,30 @@
     }
     document.getElementById("sum-count").textContent = cartCount(cart);
     document.getElementById("sum-total").textContent = cartTotal(cart).toFixed(2) + " ج.م";
+    updatePaymentUI();
   }
   renderCartPage();
+
+  function updatePaymentUI() {
+    const cart = getCart();
+    const total = cartTotal(cart);
+    const method = document.querySelector('input[name="pay"]:checked').value;
+    document.getElementById("deposit-label").textContent = `(${DEPOSIT_PERCENT}%)`;
+    document.getElementById("wallet-number-text").textContent = WALLET_NUMBER;
+    document.getElementById("wallet-note").style.display = method === "wallet" ? "block" : "none";
+    const depositLine = document.getElementById("deposit-summary-line");
+    if (method === "deposit") {
+      depositLine.style.display = "flex";
+      document.getElementById("sum-deposit").textContent = (total * DEPOSIT_PERCENT / 100).toFixed(2) + " ج.م";
+    } else {
+      depositLine.style.display = "none";
+    }
+    document.getElementById("send-btn").textContent =
+      method === "deposit" ? "ادفع العربون واستكمل الطلب" :
+      method === "full" ? "ادفع المبلغ كامل" :
+      "إرسال الطلب عبر واتساب";
+  }
+  document.querySelectorAll('input[name="pay"]').forEach(r => r.addEventListener("change", updatePaymentUI));
 
   document.getElementById("send-btn").addEventListener("click", () => {
     const name = document.getElementById("c-name").value.trim();
@@ -104,9 +141,48 @@
     const address = document.getElementById("c-address").value.trim();
     const notes = document.getElementById("c-notes").value.trim();
     const errEl = document.getElementById("form-error");
+    const statusEl = document.getElementById("pay-status");
     if (!name || !phone) { errEl.style.display = "block"; return; }
     errEl.style.display = "none";
-    sendOrderViaWhatsapp({ name, phone, address, notes });
+    statusEl.style.display = "none";
+
+    const customer = { name, phone, address, notes };
+    const method = document.querySelector('input[name="pay"]:checked').value;
+    const cart = getCart();
+    const total = cartTotal(cart);
+
+    if (method === "cod") {
+      sendOrderViaWhatsapp(customer, { paymentMethod: "cod", paymentStatus: "unpaid" });
+      return;
+    }
+    if (method === "wallet") {
+      sendOrderViaWhatsapp(customer, { paymentMethod: "wallet", paymentStatus: "unpaid" });
+      return;
+    }
+
+    /* عربون أو دفع كامل: إنشاء الأوردر أولاً، وبعدين تحويل المستخدم لصفحة الدفع */
+    const amount = method === "deposit" ? +(total * DEPOSIT_PERCENT / 100).toFixed(2) : total;
+    const btn = document.getElementById("send-btn");
+    btn.disabled = true;
+    statusEl.style.display = "block";
+    statusEl.textContent = "جاري تجهيز صفحة الدفع...";
+
+    pushOrderToFirebase(cart, customer, {
+      paymentMethod: method,
+      paymentStatus: "pending",
+      depositAmount: method === "deposit" ? amount : undefined,
+    }).then(orderInfo => {
+      if (!orderInfo) throw new Error("تعذر حفظ الأوردر");
+      return createPaymobPayment(orderInfo, amount, customer);
+    }).then(data => {
+      if (!data || !data.paymentUrl) throw new Error(data && data.error ? data.error : "تعذر إنشاء رابط الدفع");
+      localStorage.removeItem(CART_KEY);
+      location.href = data.paymentUrl;
+    }).catch(err => {
+      console.error(err);
+      statusEl.textContent = "حصلت مشكلة أثناء تجهيز الدفع، جرّب تاني أو اختار الدفع عند الاستلام.";
+      btn.disabled = false;
+    });
   });
 </script>
 </body>
