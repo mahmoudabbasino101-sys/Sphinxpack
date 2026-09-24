@@ -5,6 +5,11 @@
 const DEFAULT_WHATSAPP_NUMBER = "201028735709"; // بصيغة دولية بدون + ، يستخدم في روابط wa.me
 let WHATSAPP_NUMBER = DEFAULT_WHATSAPP_NUMBER;
 let SOCIAL_LINKS = []; // [{key,name,url}] بتتحمل من الإعدادات
+let DEPOSIT_PERCENT = 25; // نسبة العربون الافتراضية، تتغيّر من الإعدادات
+let WALLET_NUMBER = "01028735709"; // رقم المحفظة/فودافون كاش للتحويل اليدوي
+
+/* رابط سيرفر الدفع (Vercel) — هيتظبط بعد ما يترفع سيرفر Paymob */
+const PAYMENT_SERVER_URL = "https://sphinxpack-server.vercel.app";
 
 function localPhone(intl) {
   const digits = String(intl || DEFAULT_WHATSAPP_NUMBER).replace(/[^0-9]/g, "");
@@ -17,6 +22,8 @@ function initSettings(callback) {
   db.ref("settings").on("value", snap => {
     const val = snap.val() || {};
     WHATSAPP_NUMBER = val.whatsappNumber || DEFAULT_WHATSAPP_NUMBER;
+    DEPOSIT_PERCENT = val.depositPercent || 25;
+    WALLET_NUMBER = val.walletNumber || localPhone(WHATSAPP_NUMBER);
     SOCIAL_LINKS = val.socialLinks ? Object.entries(val.socialLinks).map(([key, s]) => ({ key, ...s })) : [];
     callback();
   });
@@ -211,7 +218,7 @@ function buildWhatsappMessage(cart, customer) {
 }
 
 /* حفظ الطلب في Firebase عشان يظهر في صفحة الأدمن */
-function pushOrderToFirebase(cart, customer) {
+function pushOrderToFirebase(cart, customer, extra) {
   if (typeof db === "undefined") return Promise.resolve(null);
   const order = {
     customerName: customer.name,
@@ -222,13 +229,31 @@ function pushOrderToFirebase(cart, customer) {
     total: cartTotal(cart),
     status: "new",
     createdAt: Date.now(),
+    paymentMethod: (extra && extra.paymentMethod) || "cod",
+    paymentStatus: (extra && extra.paymentStatus) || "unpaid",
   };
+  if (extra && extra.depositAmount) order.depositAmount = extra.depositAmount;
   upsertCustomer(customer, order.total);
   /* رقم تسلسلي لكل أوردر (١، ٢، ٣...) عشان يسهل البحث والمتابعة */
   return db.ref("counters/orders").transaction(cur => (cur || 0) + 1).then(result => {
     order.orderNumber = result.snapshot.val();
-    return db.ref("orders").push(order);
+    return db.ref("orders").push(order).then(ref => ({ id: ref.key, orderNumber: order.orderNumber, order }));
   });
+}
+
+/* طلب رابط دفع Paymob من السيرفر الخاص بينا (المفاتيح السرية مش هنا) */
+function createPaymobPayment(orderInfo, amount, customer) {
+  return fetch(PAYMENT_SERVER_URL + "/api/create-payment", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      amount,
+      orderId: orderInfo.id,
+      orderNumber: orderInfo.orderNumber,
+      customerName: customer.name,
+      customerPhone: customer.phone,
+    }),
+  }).then(r => r.json());
 }
 
 /* حفظ/تحديث بيانات العميل (الاسم والهاتف) كل ما حد يعمل أوردر */
@@ -246,7 +271,7 @@ function upsertCustomer(customer, orderTotal) {
   });
 }
 
-function sendOrderViaWhatsapp(customer) {
+function sendOrderViaWhatsapp(customer, extra) {
   const cart = getCart();
   if (!cart.length) { showToast("السلة فاضية"); return; }
   const msg = buildWhatsappMessage(cart, customer);
@@ -257,7 +282,7 @@ function sendOrderViaWhatsapp(customer) {
   window.open(url, "_blank");
 
   /* حفظ الطلب في الخلفية (Firebase) من غير ما يعطل فتح واتساب */
-  pushOrderToFirebase(cart, customer).catch(err => console.warn("تعذر حفظ الطلب:", err));
+  pushOrderToFirebase(cart, customer, extra).catch(err => console.warn("تعذر حفظ الطلب:", err));
 
   localStorage.removeItem(CART_KEY);
   updateCartCount();

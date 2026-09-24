@@ -247,3 +247,7 @@ footer .bottom{border-top:1px solid rgba(255,255,255,.12);margin-top:24px;paddin
 /* ===== Utility ===== */
 .center-note{text-align:center;color:var(--text-soft);padding:40px 20px}
 .hidden{display:none !important}
+
+/* ===== Payment options (cart) ===== */
+.pay-opt{display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;cursor:pointer;font-size:14px;background:#fff}
+.pay-opt input{accent-color:var(--signal, #E1531B)}
