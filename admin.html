@@ -292,10 +292,13 @@
           </div>
           <div class="form-row">
             <div class="field">
-              <label>السعر (ج.م)</label>
+              <label>السعر للكرتونة (ج.م)</label>
               <div class="price-field"><span>ج.م</span><input id="p-price" type="number" min="0" step="0.01" placeholder="0.00"></div>
             </div>
+            <div class="field"><label>عدد القطع في الكرتونة (اختياري)</label><input id="p-pieces" type="number" min="1" placeholder="مثال: 50"></div>
             <div class="field"><label>الكمية بالمخزن</label><input id="p-qty" type="number" min="0" placeholder="0"></div>
+          </div>
+          <div class="form-row two">
             <div class="field"><label>الوصف (اختياري)</label><textarea id="p-desc" placeholder="تفاصيل إضافية عن المنتج"></textarea></div>
           </div>
           <div class="img-upload-row">
@@ -681,6 +684,7 @@ function resetForm() {
   document.getElementById("p-price").value = "";
   document.getElementById("p-barcode").value = "";
   document.getElementById("p-desc").value = "";
+  document.getElementById("p-pieces").value = "";
   document.getElementById("img-preview").innerHTML = "صورة المنتج";
   pendingImageBase64 = "";
   editingProduct = null;
@@ -695,10 +699,11 @@ function saveProduct() {
   const price = parseFloat(document.getElementById("p-price").value || "0");
   const barcode = document.getElementById("p-barcode").value.trim();
   const description = document.getElementById("p-desc").value.trim();
+  const piecesPerCarton = parseInt(document.getElementById("p-pieces").value || "0") || null;
   if (!name || !price) { showToast("اكتب اسم المنتج والسعر على الأقل"); return; }
-  const data = { name, category, qty, price, barcode, description, image: pendingImageBase64 };
+  const data = { name, category, qty, price, barcode, description, piecesPerCarton, image: pendingImageBase64 };
   if (editingProduct) {
-    const upd = { name, qty, price, barcode, description };
+    const upd = { name, qty, price, barcode, description, piecesPerCarton };
     if (pendingImageBase64) upd.image = pendingImageBase64;
     if (editingProduct.category !== category) {
       deleteProduct(editingProduct.category, editingProduct.id).then(() => addProduct(data));
@@ -720,6 +725,7 @@ function editProduct(p) {
   document.getElementById("p-price").value = p.price || 0;
   document.getElementById("p-barcode").value = p.barcode || "";
   document.getElementById("p-desc").value = p.description || "";
+  document.getElementById("p-pieces").value = p.piecesPerCarton || "";
   document.getElementById("img-preview").innerHTML = p.image ? `<img src="${p.image}">` : "صورة المنتج";
   pendingImageBase64 = "";
   document.getElementById("form-title").textContent = "تعديل: " + p.name;
@@ -847,8 +853,8 @@ function openOrderModal(id) {
     <div><strong>ملاحظات:</strong> ${o.notes || "—"}</div>
     <div style="margin-top:10px"><strong>الأصناف:</strong></div>
     <table style="width:100%;margin-top:6px">
-      <thead><tr><th>الصنف</th><th>الكمية</th><th>السعر</th></tr></thead>
-      <tbody>${(o.items||[]).map(i => `<tr><td>${i.name}</td><td>${i.qty}</td><td>${(i.price||0).toFixed(2)} ج.م</td></tr>`).join("")}</tbody>
+      <thead><tr><th>الصنف</th><th>الكمية</th><th>سعر الكرتونة</th></tr></thead>
+      <tbody>${(o.items||[]).map(i => `<tr><td>${i.name}${i.piecesPerCarton ? `<div style="font-size:11px;color:var(--text-muted)">الكرتونة ${i.piecesPerCarton} قطعة</div>` : ""}</td><td>${i.qty}</td><td>${(i.price||0).toFixed(2)} ج.م</td></tr>`).join("")}</tbody>
     </table>
     <div style="margin-top:10px;font-weight:800">الإجمالي: ${(o.total??0).toFixed(2)} ج.م</div>
   `;
@@ -861,7 +867,7 @@ function closeOrderModal() {
 function printOrderInvoice() {
   if (!openOrder) return;
   const o = openOrder;
-  const rows = (o.items||[]).map(i => `<tr><td>${i.name}</td><td>${i.qty}</td><td>${(i.price||0).toFixed(2)} ج.م</td><td>${((i.price||0)*(i.qty||0)).toFixed(2)} ج.م</td></tr>`).join("");
+  const rows = (o.items||[]).map(i => `<tr><td>${i.name}${i.piecesPerCarton ? ` (الكرتونة ${i.piecesPerCarton} قطعة)` : ""}</td><td>${i.qty}</td><td>${(i.price||0).toFixed(2)} ج.م / الكرتونة</td><td>${((i.price||0)*(i.qty||0)).toFixed(2)} ج.م</td></tr>`).join("");
   document.getElementById("print-invoice").innerHTML = `
     <div class="inv-head">
       <div><h2>SphinxPack</h2><p>مستلزمات التغليف والضيافة</p></div>
@@ -874,7 +880,7 @@ function printOrderInvoice() {
     <div><strong>رقم الهاتف:</strong> ${o.customerPhone || "—"}</div>
     <div><strong>العنوان:</strong> ${o.address || "—"}</div>
     <table class="inv-table">
-      <thead><tr><th>الصنف</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th></tr></thead>
+      <thead><tr><th>الصنف</th><th>الكمية</th><th>سعر الكرتونة</th><th>الإجمالي</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>
     <div class="inv-total">الإجمالي الكلي: ${(o.total??0).toFixed(2)} ج.م</div>

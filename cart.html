@@ -95,14 +95,14 @@
           <div class="thumb">${l.image ? `<img src="${l.image}" alt="">` : ICONS.bag}</div>
           <div class="info">
             <span class="name">${l.name}</span>
-            <span class="cat">${catName(l.category)}</span>
+            <span class="cat">${catName(l.category)}${l.piecesPerCarton ? ` — الكرتونة ${l.piecesPerCarton} قطعة` : ""}</span>
             <div class="row">
               <div class="qty-box">
                 <button onclick="setLineQty('${l.id}', ${l.qty - 1})">−</button>
                 <input value="${l.qty}" readonly>
                 <button onclick="setLineQty('${l.id}', ${l.qty + 1})">+</button>
               </div>
-              <span class="price">${(l.price * l.qty).toFixed(2)} ج.م</span>
+              <span class="price">${(l.price * l.qty).toFixed(2)} ج.م <small style="font-weight:400;opacity:.7">(${l.price.toFixed(2)} ج.م / الكرتونة)</small></span>
             </div>
           </div>
           <button class="remove-line" onclick="removeFromCart('${l.id}')">حذف</button>
