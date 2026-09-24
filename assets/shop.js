@@ -96,7 +96,7 @@ function addToCart(product, qty) {
   const line = cart.find(l => l.id === product.id);
   if (line) line.qty += qty;
   else cart.push({ id: product.id, name: product.name, category: product.category,
-                    price: product.price, image: product.image || "", qty });
+                    price: product.price, image: product.image || "", piecesPerCarton: product.piecesPerCarton || null, qty });
   saveCart(cart);
   showToast(`تمت إضافة "${product.name}" للسلة`);
 }
@@ -225,7 +225,7 @@ function pushOrderToFirebase(cart, customer, extra) {
     customerPhone: customer.phone,
     address: customer.address || "",
     notes: customer.notes || "",
-    items: cart.map(l => ({ name: l.name, category: l.category, price: l.price, qty: l.qty })),
+    items: cart.map(l => ({ name: l.name, category: l.category, price: l.price, qty: l.qty, piecesPerCarton: l.piecesPerCarton || null })),
     total: cartTotal(cart),
     status: "new",
     createdAt: Date.now(),
