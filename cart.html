@@ -48,14 +48,15 @@
 
       <div class="field">
         <label>طريقة الدفع</label>
-        <div id="payment-options" style="display:flex;flex-direction:column;gap:8px">
-          <label class="pay-opt"><input type="radio" name="pay" value="cod" checked> الدفع عند الاستلام (كاش)</label>
-          <label class="pay-opt"><input type="radio" name="pay" value="wallet"> تحويل على محفظة / فودافون كاش</label>
-          <label class="pay-opt"><input type="radio" name="pay" value="deposit"> دفع عربون <span id="deposit-label"></span> أونلاين</label>
-          <label class="pay-opt"><input type="radio" name="pay" value="full"> دفع المبلغ كامل أونلاين</label>
-        </div>
+        <select id="pay-select" class="pay-select">
+          <option value="cod">الدفع عند الاستلام</option>
+          <option value="instapay">تحويل عبر إنستاباي</option>
+          <option value="vodafone">تحويل عبر فودافون كاش</option>
+          <option value="deposit">دفع عربون عن طريق Paymob</option>
+          <option value="full">دفع المبلغ كامل عن طريق Paymob</option>
+        </select>
         <div id="wallet-note" style="display:none;background:#f6f3ec;border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-top:8px;font-size:13px">
-          حوّل المبلغ على رقم <strong id="wallet-number-text">01028735709</strong> (فودافون كاش)، وابعت الطلب وهنأكده معاك.
+          حوّل المبلغ على <strong id="wallet-note-label"></strong>: <strong id="wallet-number-text">01028735709</strong>، وابعت الطلب وهنأكده معاك.
         </div>
       </div>
 
@@ -117,10 +118,19 @@
   function updatePaymentUI() {
     const cart = getCart();
     const total = cartTotal(cart);
-    const method = document.querySelector('input[name="pay"]:checked').value;
-    document.getElementById("deposit-label").textContent = `(${DEPOSIT_PERCENT}%)`;
-    document.getElementById("wallet-number-text").textContent = WALLET_NUMBER;
-    document.getElementById("wallet-note").style.display = method === "wallet" ? "block" : "none";
+    const method = document.getElementById("pay-select").value;
+    const walletNote = document.getElementById("wallet-note");
+    if (method === "instapay") {
+      walletNote.style.display = "block";
+      document.getElementById("wallet-note-label").textContent = "إنستاباي";
+      document.getElementById("wallet-number-text").textContent = INSTAPAY_NUMBER;
+    } else if (method === "vodafone") {
+      walletNote.style.display = "block";
+      document.getElementById("wallet-note-label").textContent = "فودافون كاش";
+      document.getElementById("wallet-number-text").textContent = WALLET_NUMBER;
+    } else {
+      walletNote.style.display = "none";
+    }
     const depositLine = document.getElementById("deposit-summary-line");
     if (method === "deposit") {
       depositLine.style.display = "flex";
@@ -133,7 +143,7 @@
       method === "full" ? "ادفع المبلغ كامل" :
       "إرسال الطلب عبر واتساب";
   }
-  document.querySelectorAll('input[name="pay"]').forEach(r => r.addEventListener("change", updatePaymentUI));
+  document.getElementById("pay-select").addEventListener("change", updatePaymentUI);
 
   document.getElementById("send-btn").addEventListener("click", () => {
     const name = document.getElementById("c-name").value.trim();
@@ -147,7 +157,7 @@
     statusEl.style.display = "none";
 
     const customer = { name, phone, address, notes };
-    const method = document.querySelector('input[name="pay"]:checked').value;
+    const method = document.getElementById("pay-select").value;
     const cart = getCart();
     const total = cartTotal(cart);
 
@@ -155,8 +165,8 @@
       sendOrderViaWhatsapp(customer, { paymentMethod: "cod", paymentStatus: "unpaid" });
       return;
     }
-    if (method === "wallet") {
-      sendOrderViaWhatsapp(customer, { paymentMethod: "wallet", paymentStatus: "unpaid" });
+    if (method === "instapay" || method === "vodafone") {
+      sendOrderViaWhatsapp(customer, { paymentMethod: method, paymentStatus: "unpaid" });
       return;
     }
 

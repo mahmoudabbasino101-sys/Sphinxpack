@@ -392,11 +392,14 @@
         <div class="card">
           <h2>الدفع الإلكتروني (Paymob)</h2>
           <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px">
-            نسبة العربون ورقم المحفظة اللي بيظهروا للعميل في صفحة السلة عند اختيار طريقة الدفع.
+            نسبة العربون وأرقام المحافظ اللي بتظهر للعميل في صفحة السلة عند اختيار طريقة الدفع.
           </p>
           <div class="form-row two" style="align-items:end">
             <div class="field"><label>نسبة العربون % (من الإجمالي)</label><input id="deposit-percent-input" type="number" min="1" max="100" placeholder="25"></div>
-            <div class="field"><label>رقم المحفظة / فودافون كاش</label><input id="wallet-number-input" type="text" placeholder="01028735709"></div>
+            <div class="field"><label>رقم فودافون كاش</label><input id="wallet-number-input" type="text" placeholder="01028735709"></div>
+          </div>
+          <div class="form-row two" style="align-items:end;margin-top:10px">
+            <div class="field"><label>رقم / حساب إنستاباي</label><input id="instapay-number-input" type="text" placeholder="01028735709"></div>
           </div>
           <button class="btn-primary" onclick="savePaymentSettings()">حفظ إعدادات الدفع</button>
         </div>
@@ -604,16 +607,20 @@ initSettings(() => {
   document.getElementById("contact-number-input").value = localPhone(WHATSAPP_NUMBER);
   document.getElementById("deposit-percent-input").value = DEPOSIT_PERCENT;
   document.getElementById("wallet-number-input").value = WALLET_NUMBER;
+  document.getElementById("instapay-number-input").value = INSTAPAY_NUMBER;
   renderSocialLinksTable();
 });
 function savePaymentSettings() {
   const pct = parseInt(document.getElementById("deposit-percent-input").value || "25");
   const wallet = document.getElementById("wallet-number-input").value.trim().replace(/[^0-9]/g, "");
+  const instapay = document.getElementById("instapay-number-input").value.trim().replace(/[^0-9]/g, "");
   if (pct < 1 || pct > 100) { showToast("نسبة العربون لازم تكون بين 1 و 100"); return; }
-  if (wallet.length < 10) { showToast("اكتب رقم محفظة صحيح"); return; }
+  if (wallet.length < 10) { showToast("اكتب رقم فودافون كاش صحيح"); return; }
+  if (instapay.length < 10) { showToast("اكتب رقم إنستاباي صحيح"); return; }
   Promise.all([
     db.ref("settings/depositPercent").set(pct),
     db.ref("settings/walletNumber").set(wallet),
+    db.ref("settings/instapayNumber").set(instapay),
   ]).then(() => showToast("تم حفظ إعدادات الدفع")).catch(showFbError);
 }
 window.savePaymentSettings = savePaymentSettings;
@@ -657,7 +664,7 @@ window.deleteSocialLink = deleteSocialLink;
 
 function safeJson(obj){ return JSON.stringify(obj).replace(/'/g,"&#39;").replace(/"/g,"&quot;"); }
 function paymentMethodLabel(m) {
-  return { cod: "كاش عند الاستلام", wallet: "تحويل محفظة", deposit: "عربون أونلاين", full: "دفع كامل أونلاين" }[m] || "كاش عند الاستلام";
+  return { cod: "كاش عند الاستلام", instapay: "تحويل إنستاباي", vodafone: "تحويل فودافون كاش", deposit: "عربون أونلاين (Paymob)", full: "دفع كامل أونلاين (Paymob)" }[m] || "كاش عند الاستلام";
 }
 function paymentStatusLabel(s) {
   return { paid: "مدفوع", pending: "في انتظار الدفع", failed: "فشل الدفع", unpaid: "غير مدفوع" }[s] || "غير مدفوع";
@@ -857,6 +864,9 @@ function openOrderModal(id) {
       <tbody>${(o.items||[]).map(i => `<tr><td>${i.name}${i.piecesPerCarton ? `<div style="font-size:11px;color:var(--text-muted)">الكرتونة ${i.piecesPerCarton} قطعة</div>` : ""}</td><td>${i.qty}</td><td>${(i.price||0).toFixed(2)} ج.م</td></tr>`).join("")}</tbody>
     </table>
     <div style="margin-top:10px;font-weight:800">الإجمالي: ${(o.total??0).toFixed(2)} ج.م</div>
+    ${o.paymentMethod === "deposit" ? `
+    <div style="margin-top:4px">المدفوع كعربون: <strong>${(o.depositAmount||0).toFixed(2)} ج.م</strong> — الباقي عند الاستلام: <strong>${((o.total||0)-(o.depositAmount||0)).toFixed(2)} ج.م</strong></div>` : ""}
+    ${o.paymentMethod === "full" && o.paymentStatus === "paid" ? `<div style="margin-top:4px;color:var(--green-text)">تم السداد بالكامل أونلاين</div>` : ""}
   `;
   document.getElementById("order-modal").classList.add("open");
 }
@@ -884,6 +894,13 @@ function printOrderInvoice() {
       <tbody>${rows}</tbody>
     </table>
     <div class="inv-total">الإجمالي الكلي: ${(o.total??0).toFixed(2)} ج.م</div>
+    ${o.paymentMethod === "deposit" ? `
+    <div style="margin-top:4px;font-size:14px">
+      <div>المدفوع مقدمًا (عربون): <strong>${(o.depositAmount||0).toFixed(2)} ج.م</strong></div>
+      <div>الباقي المطلوب تحصيله عند الاستلام: <strong>${((o.total||0)-(o.depositAmount||0)).toFixed(2)} ج.م</strong></div>
+    </div>` : ""}
+    ${o.paymentMethod === "full" && o.paymentStatus === "paid" ? `
+    <div style="margin-top:4px;font-size:14px">تم سداد المبلغ بالكامل أونلاين — لا يوجد مبلغ متبقٍ.</div>` : ""}
     <div class="inv-sign">
       <div>توقيع العميل باستلام الطلب</div>
       <div>توقيع المندوب/الموظف</div>
