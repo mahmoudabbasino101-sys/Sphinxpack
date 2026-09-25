@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>شكرًا لطلبك — SphinxPack</title>
+<link rel="icon" href="assets/images/sphinx-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#EFECE4; --ink:#211D18; --kraft:#A9784E; --signal:#E1531B; --line:#D4CDBD;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+    background:var(--paper); color:var(--ink); font-family:'Cairo','Tajawal',sans-serif;
+    padding:20px;
+  }
+  .card{
+    background:#fff; border:1px solid var(--line); border-radius:16px;
+    max-width:420px; width:100%; padding:36px 28px; text-align:center;
+  }
+  .logo{width:64px; height:64px; border-radius:50%; overflow:hidden; margin:0 auto 18px; background:var(--ink); display:flex; align-items:center; justify-content:center}
+  .logo img{width:100%; height:100%; object-fit:contain; padding:8px}
+  .icon{font-size:44px; margin-bottom:8px}
+  h1{font-family:'Tajawal',sans-serif; font-size:22px; margin:0 0 10px}
+  p{color:#5b5548; font-size:15px; line-height:1.8; margin:0 0 22px}
+  .order-num{display:inline-block; background:var(--paper); border:1px solid var(--line); border-radius:8px; padding:6px 16px; font-weight:800; margin-bottom:22px}
+  .btn{
+    display:inline-block; width:100%; padding:13px; border-radius:10px; text-decoration:none;
+    font-weight:700; font-size:15px; background:var(--signal); color:#fff;
+  }
+  .btn.secondary{background:transparent; border:1px solid var(--line); color:var(--ink); margin-top:10px}
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo"><img src="assets/images/sphinx-logo.png" alt="SphinxPack"></div>
+    <div class="icon" id="status-icon">🙏</div>
+    <h1 id="status-title">شكرًا لطلبك من SphinxPack</h1>
+    <p id="status-message">هنراجع طلبك ونأكد الدفع خلال وقت قصير، وهنتواصل معاك على واتساب.</p>
+    <div class="order-num" id="order-num" style="display:none"></div>
+    <a href="index.html" class="btn">العودة للمتجر</a>
+    <a href="https://wa.me/201028735709" id="wa-link" class="btn secondary">تواصل معنا على واتساب</a>
+  </div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="assets/firebase-init.js"></script>
+<script src="assets/shop.js"></script>
+<script>
+  const params = new URLSearchParams(location.search);
+  const success = params.get("success");
+  const merchantOrderId = params.get("merchant_order_id") || params.get("order") || "";
+  const directOrderId = params.get("order_id") || ""; // لما نيجي من صفحة السلة مباشرة (كاش/محفظة)
+
+  if (success === "true") {
+    document.getElementById("status-icon").textContent = "🎉";
+    document.getElementById("status-title").textContent = "تم الدفع بنجاح";
+    document.getElementById("status-message").textContent = "شكرًا لثقتك في SphinxPack! هنبدأ في تجهيز طلبك على طول.";
+  }
+
+  function showOrderNumber(num) {
+    if (!num) return;
+    const el = document.getElementById("order-num");
+    el.textContent = "رقم الأوردر #" + num;
+    el.style.display = "inline-block";
+  }
+
+  const firebaseOrderId = directOrderId || (merchantOrderId ? merchantOrderId.split("-")[0] : "");
+  if (firebaseOrderId && typeof db !== "undefined") {
+    db.ref("orders/" + firebaseOrderId).once("value").then(snap => {
+      const o = snap.val();
+      if (o) showOrderNumber(o.orderNumber);
+    }).catch(() => {});
+  }
+
+  initSettings(() => {
+    document.getElementById("wa-link").href = "https://wa.me/" + WHATSAPP_NUMBER;
+  });
+</script>
+</body>
+</html>
