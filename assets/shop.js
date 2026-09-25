@@ -235,6 +235,7 @@ function pushOrderToFirebase(cart, customer, extra) {
     paymentStatus: (extra && extra.paymentStatus) || "unpaid",
   };
   if (extra && extra.depositAmount) order.depositAmount = extra.depositAmount;
+  if (extra && extra.paymentProofImage) order.paymentProofImage = extra.paymentProofImage;
   upsertCustomer(customer, order.total);
   /* رقم تسلسلي لكل أوردر (١، ٢، ٣...) عشان يسهل البحث والمتابعة */
   return db.ref("counters/orders").transaction(cur => (cur || 0) + 1).then(result => {
@@ -273,9 +274,32 @@ function upsertCustomer(customer, orderTotal) {
   });
 }
 
+/* ضغط أي صورة (لقطة شاشة تحويل، صورة منتج...) لحجم صغير مناسب للتخزين في Firebase */
+function compressImage(file, maxSize = 700, quality = 0.72) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > height && width > maxSize) { height *= maxSize / width; width = maxSize; }
+        else if (height > maxSize) { width *= maxSize / height; height = maxSize; }
+        const canvas = document.createElement("canvas");
+        canvas.width = width; canvas.height = height;
+        canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 function sendOrderViaWhatsapp(customer, extra) {
   const cart = getCart();
-  if (!cart.length) { showToast("السلة فاضية"); return; }
+  if (!cart.length) { showToast("السلة فاضية"); return Promise.resolve(null); }
   const msg = buildWhatsappMessage(cart, customer);
   const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`;
 
@@ -283,13 +307,14 @@ function sendOrderViaWhatsapp(customer, extra) {
      لو استنينا رد Firebase الأول (نفس فكرة الـ popup blocker) */
   window.open(url, "_blank");
 
-  /* حفظ الطلب في الخلفية (Firebase) من غير ما يعطل فتح واتساب */
-  pushOrderToFirebase(cart, customer, extra).catch(err => console.warn("تعذر حفظ الطلب:", err));
+  const pushPromise = pushOrderToFirebase(cart, customer, extra);
+  pushPromise.catch(err => console.warn("تعذر حفظ الطلب:", err));
 
   localStorage.removeItem(CART_KEY);
   updateCartCount();
   if (typeof renderCartPage === "function") renderCartPage();
   renderDrawer();
+  return pushPromise;
 }
 
 /* ---------- تحميل المنتجات من Firebase ---------- */
