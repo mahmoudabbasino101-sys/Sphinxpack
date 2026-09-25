@@ -57,6 +57,10 @@
         </select>
         <div id="wallet-note" style="display:none;background:#f6f3ec;border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-top:8px;font-size:13px">
           حوّل المبلغ على <strong id="wallet-note-label"></strong>: <strong id="wallet-number-text">01028735709</strong>، وابعت الطلب وهنأكده معاك.
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <button type="button" id="copy-wallet-btn" class="btn btn-ghost" style="flex:1;padding:8px;font-size:13px">نسخ الرقم</button>
+            <a id="quick-vf-btn" class="btn btn-ghost" style="flex:1;padding:8px;font-size:13px;display:none;text-align:center">تحويل سريع بضغطة</a>
+          </div>
         </div>
       </div>
 
@@ -120,17 +124,28 @@
     const total = cartTotal(cart);
     const method = document.getElementById("pay-select").value;
     const walletNote = document.getElementById("wallet-note");
+    const quickVfBtn = document.getElementById("quick-vf-btn");
+    let currentNumber = "";
     if (method === "instapay") {
       walletNote.style.display = "block";
       document.getElementById("wallet-note-label").textContent = "إنستاباي";
-      document.getElementById("wallet-number-text").textContent = INSTAPAY_NUMBER;
+      currentNumber = INSTAPAY_NUMBER;
+      document.getElementById("wallet-number-text").textContent = currentNumber;
+      quickVfBtn.style.display = "none";
     } else if (method === "vodafone") {
       walletNote.style.display = "block";
       document.getElementById("wallet-note-label").textContent = "فودافون كاش";
-      document.getElementById("wallet-number-text").textContent = WALLET_NUMBER;
+      currentNumber = WALLET_NUMBER;
+      document.getElementById("wallet-number-text").textContent = currentNumber;
+      quickVfBtn.style.display = "block";
+      const amountForUssd = Math.round(total).toString();
+      quickVfBtn.href = `tel:*9*7*${currentNumber}*${amountForUssd}%23`;
     } else {
       walletNote.style.display = "none";
     }
+    document.getElementById("copy-wallet-btn").onclick = () => {
+      navigator.clipboard.writeText(currentNumber).then(() => showToast("تم نسخ الرقم"));
+    };
     const depositLine = document.getElementById("deposit-summary-line");
     if (method === "deposit") {
       depositLine.style.display = "flex";
