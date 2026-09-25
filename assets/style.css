@@ -249,5 +249,4 @@ footer .bottom{border-top:1px solid rgba(255,255,255,.12);margin-top:24px;paddin
 .hidden{display:none !important}
 
 /* ===== Payment options (cart) ===== */
-.pay-opt{display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;cursor:pointer;font-size:14px;background:#fff}
-.pay-opt input{accent-color:var(--signal, #E1531B)}
+.pay-select{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:8px;font-size:14px;background:#fff;font-family:inherit;color:var(--ink);cursor:pointer}
