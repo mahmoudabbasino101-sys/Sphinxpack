@@ -62,6 +62,11 @@
             <a id="quick-vf-btn" class="btn btn-ghost" style="flex:1;padding:8px;font-size:13px;display:none;text-align:center">تحويل سريع بضغطة</a>
           </div>
         </div>
+        <div id="proof-upload-row" style="display:none;margin-top:10px">
+          <label style="font-size:13px;font-weight:700;display:block;margin-bottom:6px">صورة إثبات التحويل (لازم ترفقها)</label>
+          <input type="file" accept="image/*" id="c-proof-image">
+          <p id="proof-error" style="color:#C0392B;font-size:12.5px;margin-top:6px;display:none">من فضلك ارفق صورة إثبات التحويل</p>
+        </div>
       </div>
 
       <div class="summary-line"><span>عدد القطع</span><span id="sum-count">0</span></div>
@@ -143,6 +148,8 @@
     } else {
       walletNote.style.display = "none";
     }
+    document.getElementById("proof-upload-row").style.display =
+      (method === "instapay" || method === "vodafone") ? "block" : "none";
     document.getElementById("copy-wallet-btn").onclick = () => {
       navigator.clipboard.writeText(currentNumber).then(() => showToast("تم نسخ الرقم"));
     };
@@ -167,6 +174,8 @@
     const notes = document.getElementById("c-notes").value.trim();
     const errEl = document.getElementById("form-error");
     const statusEl = document.getElementById("pay-status");
+    const proofErrEl = document.getElementById("proof-error");
+    proofErrEl.style.display = "none";
     if (!name || !phone) { errEl.style.display = "block"; return; }
     errEl.style.display = "none";
     statusEl.style.display = "none";
@@ -175,19 +184,36 @@
     const method = document.getElementById("pay-select").value;
     const cart = getCart();
     const total = cartTotal(cart);
+    const btn = document.getElementById("send-btn");
 
     if (method === "cod") {
-      sendOrderViaWhatsapp(customer, { paymentMethod: "cod", paymentStatus: "unpaid" });
+      sendOrderViaWhatsapp(customer, { paymentMethod: "cod", paymentStatus: "unpaid" }).then(orderInfo => {
+        location.href = "thank-you.html" + (orderInfo ? "?order_id=" + orderInfo.id : "");
+      });
       return;
     }
+
     if (method === "instapay" || method === "vodafone") {
-      sendOrderViaWhatsapp(customer, { paymentMethod: method, paymentStatus: "unpaid" });
+      const fileInput = document.getElementById("c-proof-image");
+      const file = fileInput.files[0];
+      if (!file) { proofErrEl.style.display = "block"; return; }
+      btn.disabled = true;
+      statusEl.style.display = "block";
+      statusEl.textContent = "جاري رفع صورة الإثبات...";
+      compressImage(file).then(imgBase64 => {
+        return sendOrderViaWhatsapp(customer, { paymentMethod: method, paymentStatus: "unpaid", paymentProofImage: imgBase64 });
+      }).then(orderInfo => {
+        location.href = "thank-you.html" + (orderInfo ? "?order_id=" + orderInfo.id : "");
+      }).catch(err => {
+        console.error(err);
+        btn.disabled = false;
+        statusEl.textContent = "تعذر رفع الصورة، جرّب تاني.";
+      });
       return;
     }
 
     /* عربون أو دفع كامل: إنشاء الأوردر أولاً، وبعدين تحويل المستخدم لصفحة الدفع */
     const amount = method === "deposit" ? +(total * DEPOSIT_PERCENT / 100).toFixed(2) : total;
-    const btn = document.getElementById("send-btn");
     btn.disabled = true;
     statusEl.style.display = "block";
     statusEl.textContent = "جاري تجهيز صفحة الدفع...";
