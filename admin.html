@@ -858,6 +858,7 @@ function openOrderModal(id) {
     <div><strong>الهاتف:</strong> ${o.customerPhone || "—"}</div>
     <div><strong>العنوان:</strong> ${o.address || "—"}</div>
     <div><strong>ملاحظات:</strong> ${o.notes || "—"}</div>
+    ${o.paymentProofImage ? `<div style="margin-top:10px"><strong>صورة إثبات التحويل:</strong><br><img src="${o.paymentProofImage}" style="max-width:100%;border-radius:8px;margin-top:6px;border:1px solid var(--border);cursor:pointer" onclick="window.open(this.src,'_blank')"></div>` : ""}
     <div style="margin-top:10px"><strong>الأصناف:</strong></div>
     <table style="width:100%;margin-top:6px">
       <thead><tr><th>الصنف</th><th>الكمية</th><th>سعر الكرتونة</th></tr></thead>
