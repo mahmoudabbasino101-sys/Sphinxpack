@@ -179,7 +179,7 @@
   /* ---- scanner modal ---- */
   .scanner-modal{position:fixed;inset:0;background:rgba(21,29,46,.7);display:none;align-items:center;justify-content:center;z-index:90;padding:16px}
   .scanner-modal.open{display:flex}
-  .scanner-box{background:#fff;border-radius:12px;padding:16px;max-width:420px;width:100%}
+  .scanner-box{background:#fff;border-radius:12px;padding:16px;max-width:420px;width:100%;max-height:88vh;overflow-y:auto}
   .scanner-box h4{display:flex;justify-content:space-between;align-items:center;margin:0}
   .scanner-box button.close-x{background:none;border:none;font-size:20px;cursor:pointer;color:#6b7280}
   #qr-reader{width:100%;margin-top:10px;border-radius:8px;overflow:hidden}
@@ -667,7 +667,7 @@ function paymentMethodLabel(m) {
   return { cod: "كاش عند الاستلام", instapay: "تحويل إنستاباي", vodafone: "تحويل فودافون كاش", deposit: "عربون أونلاين (Paymob)", full: "دفع كامل أونلاين (Paymob)" }[m] || "كاش عند الاستلام";
 }
 function paymentStatusLabel(s) {
-  return { paid: "مدفوع", pending: "في انتظار الدفع", failed: "فشل الدفع", unpaid: "غير مدفوع", partial: "مدفوع جزئيًا" }[s] || "غير مدفوع";
+  return { paid: "مدفوع", pending: "في انتظار الدفع", failed: "فشل الدفع", unpaid: "في انتظار التأكيد", partial: "مدفوع جزئيًا" }[s] || "في انتظار التأكيد";
 }
 
 /* ---------------- معاينة الصورة ---------------- */
@@ -852,7 +852,7 @@ function openOrderModal(id) {
   const body = document.getElementById("order-modal-body");
   body.innerHTML = `
     <div><strong>رقم الأوردر:</strong> #${o.orderNumber || "—"}</div>
-    <div><strong>طريقة الدفع:</strong> ${paymentMethodLabel(o.paymentMethod)} ${o.paymentStatus ? `<span class="status-pill ${o.paymentStatus==='paid'?'ok':(o.paymentStatus==='pending'?'new':'low')}" style="margin-right:6px">${paymentStatusLabel(o.paymentStatus)}</span>` : ""}</div>
+    <div><strong>طريقة الدفع:</strong> ${paymentMethodLabel(o.paymentMethod)} ${o.paymentStatus ? `<span class="status-pill ${o.paymentStatus==='paid'?'ok':(o.paymentStatus==='failed'?'low':'new')}" style="margin-right:6px">${paymentStatusLabel(o.paymentStatus)}</span>` : ""}</div>
     <div><strong>التاريخ:</strong> ${o.createdAt ? new Date(o.createdAt).toLocaleString("ar-EG") : "—"}</div>
     <div><strong>العميل:</strong> ${o.customerName || "—"}</div>
     <div><strong>الهاتف:</strong> ${o.customerPhone || "—"}</div>
