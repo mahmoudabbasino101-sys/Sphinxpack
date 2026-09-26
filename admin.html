@@ -667,7 +667,7 @@ function paymentMethodLabel(m) {
   return { cod: "كاش عند الاستلام", instapay: "تحويل إنستاباي", vodafone: "تحويل فودافون كاش", deposit: "عربون أونلاين (Paymob)", full: "دفع كامل أونلاين (Paymob)" }[m] || "كاش عند الاستلام";
 }
 function paymentStatusLabel(s) {
-  return { paid: "مدفوع", pending: "في انتظار الدفع", failed: "فشل الدفع", unpaid: "غير مدفوع" }[s] || "غير مدفوع";
+  return { paid: "مدفوع", pending: "في انتظار الدفع", failed: "فشل الدفع", unpaid: "غير مدفوع", partial: "مدفوع جزئيًا" }[s] || "غير مدفوع";
 }
 
 /* ---------------- معاينة الصورة ---------------- */
@@ -868,16 +868,41 @@ function openOrderModal(id) {
     ${o.paymentMethod === "deposit" ? `
     <div style="margin-top:4px">المدفوع كعربون: <strong>${(o.depositAmount||0).toFixed(2)} ج.م</strong> — الباقي عند الاستلام: <strong>${((o.total||0)-(o.depositAmount||0)).toFixed(2)} ج.م</strong></div>` : ""}
     ${o.paymentMethod === "full" && o.paymentStatus === "paid" ? `<div style="margin-top:4px;color:var(--green-text)">تم السداد بالكامل أونلاين</div>` : ""}
+    <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
+      <label style="font-size:13px;font-weight:700;display:block;margin-bottom:6px">المبلغ المدفوع فعليًا (بعد مراجعة صورة الإثبات)</label>
+      <div style="display:flex;gap:8px">
+        <input type="number" id="confirmed-paid-input" min="0" step="0.01" value="${o.confirmedPaidAmount ?? ''}" placeholder="0.00" style="flex:1;padding:9px 10px;border:1px solid var(--input-border);border-radius:7px;font-size:13.5px">
+        <button class="btn-dark" onclick="saveConfirmedPaidAmount('${o.id}')">حفظ</button>
+      </div>
+      <div id="remaining-preview" style="margin-top:6px;font-size:13px;color:var(--text-muted)"></div>
+    </div>
   `;
+  document.getElementById("confirmed-paid-input").addEventListener("input", () => updateRemainingPreview(o.total));
+  updateRemainingPreview(o.total);
   document.getElementById("order-modal").classList.add("open");
 }
+function updateRemainingPreview(total) {
+  const val = parseFloat(document.getElementById("confirmed-paid-input").value || "0");
+  const remaining = (total || 0) - val;
+  document.getElementById("remaining-preview").textContent =
+    val > 0 ? `الباقي المتبقي: ${remaining.toFixed(2)} ج.م` : "";
+}
+function saveConfirmedPaidAmount(id) {
+  const val = parseFloat(document.getElementById("confirmed-paid-input").value || "0");
+  if (isNaN(val) || val < 0) { showToast("اكتب مبلغ صحيح"); return; }
+  const o = allOrders.find(x => x.id === id);
+  const newStatus = val >= (o.total || 0) ? "paid" : (val > 0 ? "partial" : o.paymentStatus || "unpaid");
+  db.ref("orders/" + id).update({ confirmedPaidAmount: val, paymentStatus: newStatus })
+    .then(() => showToast("تم حفظ المبلغ المدفوع")).catch(showFbError);
+}
+window.saveConfirmedPaidAmount = saveConfirmedPaidAmount;
 function closeOrderModal() {
   document.getElementById("order-modal").classList.remove("open");
   openOrder = null;
 }
 function printOrderInvoice() {
   if (!openOrder) return;
-  const o = openOrder;
+  const o = allOrders.find(x => x.id === openOrder.id) || openOrder;
   const rows = (o.items||[]).map(i => `<tr><td>${i.name}${i.piecesPerCarton ? ` (الكرتونة ${i.piecesPerCarton} قطعة)` : ""}</td><td>${i.qty}</td><td>${(i.price||0).toFixed(2)} ج.م / الكرتونة</td><td>${((i.price||0)*(i.qty||0)).toFixed(2)} ج.م</td></tr>`).join("");
   document.getElementById("print-invoice").innerHTML = `
     <div class="inv-head">
@@ -902,6 +927,11 @@ function printOrderInvoice() {
     </div>` : ""}
     ${o.paymentMethod === "full" && o.paymentStatus === "paid" ? `
     <div style="margin-top:4px;font-size:14px">تم سداد المبلغ بالكامل أونلاين — لا يوجد مبلغ متبقٍ.</div>` : ""}
+    ${(o.confirmedPaidAmount !== undefined && o.confirmedPaidAmount !== null) ? `
+    <div style="margin-top:4px;font-size:14px">
+      <div>المبلغ المدفوع (بعد المراجعة): <strong>${(o.confirmedPaidAmount||0).toFixed(2)} ج.م</strong></div>
+      <div>الباقي المطلوب تحصيله: <strong>${((o.total||0)-(o.confirmedPaidAmount||0)).toFixed(2)} ج.م</strong></div>
+    </div>` : ""}
     <div class="inv-sign">
       <div>توقيع العميل باستلام الطلب</div>
       <div>توقيع المندوب/الموظف</div>
@@ -971,7 +1001,17 @@ function initDashboard() {
 
   db.ref("customers").on("value", snap => {
     const val = snap.val() || {};
-    allCustomers = Object.entries(val).map(([key, c]) => ({ key, ...c }));
+    allCustomers = Object.entries(val).map(([key, c]) => {
+      const orders = c.orders ? Object.values(c.orders) : [];
+      return {
+        key,
+        name: c.name || "",
+        phone: c.phone || "",
+        ordersCount: orders.length,
+        totalSpent: orders.reduce((s, o) => s + (o.total || 0), 0),
+        lastOrderAt: orders.reduce((m, o) => Math.max(m, o.createdAt || 0), 0),
+      };
+    });
     renderCustomersTable();
   }, showFbError);
 
