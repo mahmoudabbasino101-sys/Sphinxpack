@@ -259,19 +259,18 @@ function createPaymobPayment(orderInfo, amount, customer) {
   }).then(r => r.json());
 }
 
-/* حفظ/تحديث بيانات العميل (الاسم والهاتف) كل ما حد يعمل أوردر */
+/* حفظ/تحديث بيانات العميل (الاسم والهاتف) كل ما حد يعمل أوردر
+   ملحوظة: مبنستخدمش transaction هنا عمدًا لأن العميل نفسه (غير مسجل دخول)
+   معندوش صلاحية "قراءة" بيانات العملاء (عشان الخصوصية)، والـ transaction
+   محتاجة قراءة القيمة الحالية الأول قبل الكتابة. بدل كده كل أوردر بيتسجل
+   كسطر منفصل تحت العميل، ولوحة الأدمن بتجمع العدد والإجمالي من السطور دي. */
 function upsertCustomer(customer, orderTotal) {
   if (typeof db === "undefined") return;
   const key = (customer.phone || "").replace(/[^0-9]/g, "") || "unknown_" + Date.now();
-  db.ref("customers/" + key).transaction(current => {
-    current = current || { name: customer.name, phone: customer.phone, ordersCount: 0, totalSpent: 0 };
-    current.name = customer.name || current.name;
-    current.phone = customer.phone || current.phone;
-    current.ordersCount = (current.ordersCount || 0) + 1;
-    current.totalSpent = (current.totalSpent || 0) + orderTotal;
-    current.lastOrderAt = Date.now();
-    return current;
-  });
+  db.ref("customers/" + key + "/name").set(customer.name || "").catch(err => console.warn("تعذر حفظ اسم العميل:", err));
+  db.ref("customers/" + key + "/phone").set(customer.phone || "").catch(err => console.warn("تعذر حفظ رقم العميل:", err));
+  db.ref("customers/" + key + "/orders").push({ total: orderTotal, createdAt: Date.now() })
+    .catch(err => console.warn("تعذر تسجيل أوردر العميل:", err));
 }
 
 /* ضغط أي صورة (لقطة شاشة تحويل، صورة منتج...) لحجم صغير مناسب للتخزين في Firebase */
