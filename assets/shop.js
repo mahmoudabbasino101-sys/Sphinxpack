@@ -386,6 +386,7 @@ function mountFooter() {
         <h4>تواصل معنا</h4>
         <a href="https://wa.me/${WHATSAPP_NUMBER}" target="_blank">واتساب: ${localPhone(WHATSAPP_NUMBER)}</a>
         <a href="tel:${localPhone(WHATSAPP_NUMBER)}">اتصال: ${localPhone(WHATSAPP_NUMBER)}</a>
+        <a href="policy.html">سياسة الاستبدال والاسترجاع</a>
       </div>
     </div>
     <div class="bottom">© ${new Date().getFullYear()} SphinxPack — جميع الحقوق محفوظة</div>
