@@ -244,6 +244,25 @@ function pushOrderToFirebase(cart, customer, extra) {
   });
 }
 
+/* حفظ بيانات الطلب مؤقتًا وقت التحويل لصفحة الدفع (عربون/كامل عبر Paymob) —
+   الأوردر الحقيقي مبيتعملش إلا بعد ما السيرفر يتأكد إن الدفع نجح فعلاً،
+   عشان محدش يشوف في لوحة التحكم أوردرات لسه مدفوعتش. */
+function pushPendingPayment(cart, customer, extra) {
+  if (typeof db === "undefined") return Promise.resolve(null);
+  const record = {
+    customerName: customer.name,
+    customerPhone: customer.phone,
+    address: customer.address || "",
+    notes: customer.notes || "",
+    items: cart.map(l => ({ name: l.name, category: l.category, price: l.price, qty: l.qty, piecesPerCarton: l.piecesPerCarton || null })),
+    total: cartTotal(cart),
+    paymentMethod: (extra && extra.paymentMethod) || "full",
+    createdAt: Date.now(),
+  };
+  if (extra && extra.depositAmount) record.depositAmount = extra.depositAmount;
+  return db.ref("pending_payments").push(record).then(ref => ({ id: ref.key }));
+}
+
 /* طلب رابط دفع Paymob من السيرفر الخاص بينا (المفاتيح السرية مش هنا) */
 function createPaymobPayment(orderInfo, amount, customer) {
   return fetch(PAYMENT_SERVER_URL + "/api/create-payment", {
