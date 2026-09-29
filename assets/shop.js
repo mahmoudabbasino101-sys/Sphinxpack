@@ -51,7 +51,7 @@ function initCategories(callback) {
   db.ref("categories").on("value", snap => {
     const val = snap.val();
     if (val && Object.keys(val).length) {
-      CATEGORIES = Object.entries(val).map(([slug, c]) => ({ slug, name: c.name, icon: c.icon || "box" }));
+      CATEGORIES = Object.entries(val).map(([slug, c]) => ({ slug, name: c.name, icon: c.icon || "box", image: c.image || null, description: c.description || "" }));
     } else {
       const seed = {};
       DEFAULT_CATEGORIES.forEach(c => { seed[c.slug] = { name: c.name, icon: c.icon }; });
