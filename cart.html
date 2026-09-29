@@ -212,19 +212,19 @@
       return;
     }
 
-    /* عربون أو دفع كامل: إنشاء الأوردر أولاً، وبعدين تحويل المستخدم لصفحة الدفع */
+    /* عربون أو دفع كامل: نحفظ الطلب مؤقتًا، وبعدين نحوّل المستخدم لصفحة الدفع —
+       الأوردر الحقيقي هيتعمل بس بعد تأكيد نجاح الدفع من Paymob */
     const amount = method === "deposit" ? +(total * DEPOSIT_PERCENT / 100).toFixed(2) : total;
     btn.disabled = true;
     statusEl.style.display = "block";
     statusEl.textContent = "جاري تجهيز صفحة الدفع...";
 
-    pushOrderToFirebase(cart, customer, {
+    pushPendingPayment(cart, customer, {
       paymentMethod: method,
-      paymentStatus: "pending",
       depositAmount: method === "deposit" ? amount : undefined,
-    }).then(orderInfo => {
-      if (!orderInfo) throw new Error("تعذر حفظ الأوردر");
-      return createPaymobPayment(orderInfo, amount, customer);
+    }).then(pendingInfo => {
+      if (!pendingInfo) throw new Error("تعذر تجهيز الطلب");
+      return createPaymobPayment(pendingInfo, amount, customer);
     }).then(data => {
       if (!data || !data.paymentUrl) throw new Error(data && data.error ? data.error : "تعذر إنشاء رابط الدفع");
       localStorage.removeItem(CART_KEY);
