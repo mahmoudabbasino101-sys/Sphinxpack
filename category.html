@@ -50,24 +50,18 @@
   };
 
   initSettings(() => initCategories(function () {
-    const slug = params.get("cat") || CATEGORIES[0].slug;
-    const cat = CATEGORIES.find(c => c.slug === slug) || CATEGORIES[0];
+    const searchQuery = params.get("search");
 
-    mountHeader(cat.slug);
-    mountFooter();
+    function iconFor(catSlug) {
+      const c = CATEGORIES.find(x => x.slug === catSlug);
+      return (c && ICONS[c.icon]) || ICONS.box;
+    }
 
-    document.title = `${cat.name} — SphinxPack`;
-    document.getElementById("meta-description").setAttribute("content",
-      `تصفح كل منتجات ${cat.name} بالجملة من سفينكس باك — أسعار جملة مناسبة للمطاعم والكافيهات وشركات الكاترينج، والطلب عبر واتساب.`);
-    document.getElementById("crumb-cat").textContent = cat.name;
-    document.getElementById("cat-title").textContent = cat.name;
-    document.getElementById("cat-desc").textContent = "تصفح كل منتجات " + cat.name + " بالجملة.";
-
-    function card(p) {
+    function card(p, iconOverride) {
       const stockOk = (p.qty ?? 0) > 0;
       return `
       <div class="prod-card">
-        <div class="thumb">${p.image ? `<img src="${p.image}" alt="${p.name}">` : (ICONS[cat.icon] || ICONS.box)}</div>
+        <div class="thumb">${p.image ? `<img src="${p.image}" alt="${p.name}">` : (iconOverride || iconFor(p.category))}</div>
         <div class="body">
           <h4>${p.name}</h4>
           <span class="stock ${stockOk ? "" : "low"}">${stockOk ? "متوفر" : "غير متوفر حاليًا"}</span>
@@ -83,6 +77,43 @@
       </div>`;
     }
 
+    if (searchQuery) {
+      mountHeader(null);
+      mountFooter();
+      document.title = `نتائج البحث عن "${searchQuery}" — SphinxPack`;
+      document.getElementById("meta-description").setAttribute("content", `نتائج البحث عن ${searchQuery} في متجر سفينكس باك.`);
+      document.getElementById("crumb-cat").textContent = "نتائج البحث";
+      document.getElementById("cat-title").textContent = `نتائج البحث عن "${searchQuery}"`;
+      document.getElementById("cat-desc").textContent = "كل المنتجات المطابقة لبحثك.";
+
+      loadProducts(null, list => {
+        const q = searchQuery.trim().toLowerCase();
+        const filtered = list.filter(p => (p.name || "").toLowerCase().includes(q));
+        if (!filtered.length) {
+          grid.innerHTML = "";
+          emptyNote.classList.remove("hidden");
+          document.getElementById("empty-note").textContent = `مفيش منتجات مطابقة لـ "${searchQuery}"`;
+          return;
+        }
+        emptyNote.classList.add("hidden");
+        grid.innerHTML = filtered.map(p => card(p)).join("");
+      });
+      return;
+    }
+
+    const slug = params.get("cat") || CATEGORIES[0].slug;
+    const cat = CATEGORIES.find(c => c.slug === slug) || CATEGORIES[0];
+
+    mountHeader(cat.slug);
+    mountFooter();
+
+    document.title = `${cat.name} — SphinxPack`;
+    document.getElementById("meta-description").setAttribute("content",
+      `تصفح كل منتجات ${cat.name} بالجملة من سفينكس باك — أسعار جملة مناسبة للمطاعم والكافيهات وشركات الكاترينج، والطلب عبر واتساب.`);
+    document.getElementById("crumb-cat").textContent = cat.name;
+    document.getElementById("cat-title").textContent = cat.name;
+    document.getElementById("cat-desc").textContent = cat.description || ("تصفح كل منتجات " + cat.name + " بالجملة.");
+
     loadProducts(cat.slug, list => {
       if (!list.length) {
         grid.innerHTML = "";
@@ -90,7 +121,7 @@
         return;
       }
       emptyNote.classList.add("hidden");
-      grid.innerHTML = list.map(card).join("");
+      grid.innerHTML = list.map(p => card(p, ICONS[cat.icon] || ICONS.box)).join("");
     });
   }));
 </script>
