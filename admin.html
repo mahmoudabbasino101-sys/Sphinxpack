@@ -472,7 +472,7 @@
   @media print {
     body * { visibility: hidden; }
     #print-invoice, #print-invoice * { visibility: visible; }
-    #print-invoice { display:block !important; position:absolute; top:0; right:0; left:0; padding:24px; }
+    #print-invoice { display:flex !important; flex-direction:column; position:fixed; inset:0; padding:24px; box-sizing:border-box; }
     .inv-head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #222;padding-bottom:14px;margin-bottom:18px}
     .inv-head h2{margin:0;font-size:22px}
     .inv-head p{margin:2px 0 0;font-size:12.5px;color:#555}
@@ -480,7 +480,8 @@
     .inv-table{width:100%;border-collapse:collapse;margin:16px 0}
     .inv-table th,.inv-table td{border:1px solid #ccc;padding:8px;font-size:13px;text-align:right}
     .inv-total{text-align:left;font-size:16px;font-weight:800;margin-top:8px}
-    .inv-sign{margin-top:60px;display:flex;justify-content:space-between}
+    .inv-paid-summary{font-size:14px;margin-top:6px}
+    .inv-sign{margin-top:auto;padding-top:60px;display:flex;justify-content:space-between}
     .inv-sign div{width:45%;border-top:1px solid #333;padding-top:6px;font-size:12.5px;text-align:center}
   }
 </style>
@@ -696,7 +697,7 @@ function paymentMethodLabel(m) {
   return { cod: "كاش عند الاستلام", instapay: "تحويل إنستاباي", vodafone: "تحويل فودافون كاش", deposit: "عربون أونلاين (Paymob)", full: "دفع كامل أونلاين (Paymob)" }[m] || "كاش عند الاستلام";
 }
 function paymentStatusLabel(s) {
-  return { paid: "مدفوع", pending: "في انتظار الدفع", failed: "فشل الدفع", unpaid: "في انتظار التأكيد", partial: "مدفوع جزئيًا" }[s] || "في انتظار التأكيد";
+  return { paid: "مدفوع", confirmed: "تم التأكيد", pending: "في انتظار الدفع", failed: "فشل الدفع", unpaid: "في انتظار التأكيد", partial: "مدفوع جزئيًا" }[s] || "في انتظار التأكيد";
 }
 
 /* ---------------- معاينة الصورة ---------------- */
@@ -881,7 +882,7 @@ function openOrderModal(id) {
   const body = document.getElementById("order-modal-body");
   body.innerHTML = `
     <div><strong>رقم الأوردر:</strong> #${o.orderNumber || "—"}</div>
-    <div><strong>طريقة الدفع:</strong> ${paymentMethodLabel(o.paymentMethod)} ${o.paymentStatus ? `<span class="status-pill ${o.paymentStatus==='paid'?'ok':(o.paymentStatus==='failed'?'low':'new')}" style="margin-right:6px">${paymentStatusLabel(o.paymentStatus)}</span>` : ""}</div>
+    <div><strong>طريقة الدفع:</strong> ${paymentMethodLabel(o.paymentMethod)} ${o.paymentStatus ? `<span class="status-pill ${(o.paymentStatus==='paid'||o.paymentStatus==='confirmed')?'ok':(o.paymentStatus==='failed'?'low':'new')}" style="margin-right:6px">${paymentStatusLabel(o.paymentStatus)}</span>` : ""}</div>
     <div><strong>التاريخ:</strong> ${o.createdAt ? new Date(o.createdAt).toLocaleString("ar-EG") : "—"}</div>
     <div><strong>العميل:</strong> ${o.customerName || "—"}</div>
     <div><strong>الهاتف:</strong> ${o.customerPhone || "—"}</div>
@@ -920,7 +921,7 @@ function saveConfirmedPaidAmount(id) {
   const val = parseFloat(document.getElementById("confirmed-paid-input").value || "0");
   if (isNaN(val) || val < 0) { showToast("اكتب مبلغ صحيح"); return; }
   const o = allOrders.find(x => x.id === id);
-  const newStatus = val >= (o.total || 0) ? "paid" : (val > 0 ? "partial" : o.paymentStatus || "unpaid");
+  const newStatus = val > 0 ? "confirmed" : (o.paymentStatus || "unpaid");
   db.ref("orders/" + id).update({ confirmedPaidAmount: val, paymentStatus: newStatus })
     .then(() => showToast("تم حفظ المبلغ المدفوع")).catch(showFbError);
 }
@@ -933,6 +934,14 @@ function printOrderInvoice() {
   if (!openOrder) return;
   const o = allOrders.find(x => x.id === openOrder.id) || openOrder;
   const rows = (o.items||[]).map(i => `<tr><td>${i.name}${i.piecesPerCarton ? ` (الكرتونة ${i.piecesPerCarton} قطعة)` : ""}</td><td>${i.qty}</td><td>${(i.price||0).toFixed(2)} ج.م / الكرتونة</td><td>${((i.price||0)*(i.qty||0)).toFixed(2)} ج.م</td></tr>`).join("");
+
+  /* المدفوع فعليًا: المبلغ اللي أكّده الأدمن بعد المراجعة، وإلا العربون (لو Paymob)، وإلا كامل المبلغ لو "دفع كامل" ناجح، وإلا صفر */
+  let paidAmount = 0;
+  if (o.confirmedPaidAmount !== undefined && o.confirmedPaidAmount !== null) paidAmount = o.confirmedPaidAmount;
+  else if (o.paymentMethod === "deposit") paidAmount = o.depositAmount || 0;
+  else if (o.paymentMethod === "full" && o.paymentStatus === "paid") paidAmount = o.total || 0;
+  const remaining = (o.total || 0) - paidAmount;
+
   document.getElementById("print-invoice").innerHTML = `
     <div class="inv-head">
       <div><h2>SphinxPack</h2><p>مستلزمات التغليف والضيافة</p></div>
@@ -949,6 +958,10 @@ function printOrderInvoice() {
       <tbody>${rows}</tbody>
     </table>
     <div class="inv-total">الإجمالي الكلي: ${(o.total??0).toFixed(2)} ج.م</div>
+    <div class="inv-paid-summary">
+      <div>المدفوع: <strong>${paidAmount.toFixed(2)} ج.م</strong></div>
+      <div>الباقي (المطلوب تحصيله): <strong>${remaining.toFixed(2)} ج.م</strong></div>
+    </div>
     <div class="inv-sign">
       <div>توقيع العميل باستلام الطلب</div>
       <div>توقيع المندوب/الموظف</div>
