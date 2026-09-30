@@ -296,6 +296,7 @@
               <div class="price-field"><span>ج.م</span><input id="p-price" type="number" min="0" step="0.01" placeholder="0.00"></div>
             </div>
             <div class="field"><label>عدد القطع في الكرتونة (اختياري)</label><input id="p-pieces" type="number" min="1" placeholder="مثال: 50"></div>
+            <div class="field"><label>المقاس/الحجم (اختياري)</label><input id="p-size" type="text" placeholder="مثال: 20cc أو 12oz"></div>
             <div class="field"><label>الكمية بالمخزن</label><input id="p-qty" type="number" min="0" placeholder="0"></div>
           </div>
           <div class="form-row two">
@@ -469,10 +470,11 @@
 <!-- ===== منطقة الطباعة (مخفية إلا وقت الطباعة) ===== -->
 <div id="print-invoice" style="display:none"></div>
 <style>
+  @page { size: A4; margin: 15mm; }
   @media print {
     body * { visibility: hidden; }
     #print-invoice, #print-invoice * { visibility: visible; }
-    #print-invoice { display:flex !important; flex-direction:column; position:fixed; inset:0; padding:24px; box-sizing:border-box; }
+    #print-invoice { display:flex !important; flex-direction:column; position:absolute; top:0; left:0; right:0; min-height:267mm; padding:0; box-sizing:border-box; }
     .inv-head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #222;padding-bottom:14px;margin-bottom:18px}
     .inv-head h2{margin:0;font-size:22px}
     .inv-head p{margin:2px 0 0;font-size:12.5px;color:#555}
@@ -722,6 +724,7 @@ function resetForm() {
   document.getElementById("p-barcode").value = "";
   document.getElementById("p-desc").value = "";
   document.getElementById("p-pieces").value = "";
+  document.getElementById("p-size").value = "";
   document.getElementById("img-preview").innerHTML = "صورة المنتج";
   pendingImageBase64 = "";
   editingProduct = null;
@@ -737,10 +740,11 @@ function saveProduct() {
   const barcode = document.getElementById("p-barcode").value.trim();
   const description = document.getElementById("p-desc").value.trim();
   const piecesPerCarton = parseInt(document.getElementById("p-pieces").value || "0") || null;
+  const size = document.getElementById("p-size").value.trim();
   if (!name || !price) { showToast("اكتب اسم المنتج والسعر على الأقل"); return; }
-  const data = { name, category, qty, price, barcode, description, piecesPerCarton, image: pendingImageBase64 };
+  const data = { name, category, qty, price, barcode, description, piecesPerCarton, size, image: pendingImageBase64 };
   if (editingProduct) {
-    const upd = { name, qty, price, barcode, description, piecesPerCarton };
+    const upd = { name, qty, price, barcode, description, piecesPerCarton, size };
     if (pendingImageBase64) upd.image = pendingImageBase64;
     if (editingProduct.category !== category) {
       deleteProduct(editingProduct.category, editingProduct.id).then(() => addProduct(data));
@@ -763,6 +767,7 @@ function editProduct(p) {
   document.getElementById("p-barcode").value = p.barcode || "";
   document.getElementById("p-desc").value = p.description || "";
   document.getElementById("p-pieces").value = p.piecesPerCarton || "";
+  document.getElementById("p-size").value = p.size || "";
   document.getElementById("img-preview").innerHTML = p.image ? `<img src="${p.image}">` : "صورة المنتج";
   pendingImageBase64 = "";
   document.getElementById("form-title").textContent = "تعديل: " + p.name;
@@ -935,9 +940,17 @@ function printOrderInvoice() {
   const o = allOrders.find(x => x.id === openOrder.id) || openOrder;
   const rows = (o.items||[]).map(i => `<tr><td>${i.name}${i.piecesPerCarton ? ` (الكرتونة ${i.piecesPerCarton} قطعة)` : ""}</td><td>${i.qty}</td><td>${(i.price||0).toFixed(2)} ج.م / الكرتونة</td><td>${((i.price||0)*(i.qty||0)).toFixed(2)} ج.م</td></tr>`).join("");
 
-  /* المدفوع فعليًا: المبلغ اللي أكّده الأدمن بعد المراجعة، وإلا العربون (لو Paymob)، وإلا كامل المبلغ لو "دفع كامل" ناجح، وإلا صفر */
+  /* لو فيه رقم مكتوب دلوقتي في خانة "المبلغ المدفوع فعليًا" (حتى لو لسه ما اتحفظش)،
+     نستخدمه فورًا في الطباعة ونحفظه في نفس اللحظة، عشان الفاتورة تعكس آخر حاجة كتبتها */
   let paidAmount = 0;
-  if (o.confirmedPaidAmount !== undefined && o.confirmedPaidAmount !== null) paidAmount = o.confirmedPaidAmount;
+  const liveInput = document.getElementById("confirmed-paid-input");
+  if (liveInput && liveInput.value !== "") {
+    paidAmount = parseFloat(liveInput.value) || 0;
+    if (paidAmount !== (o.confirmedPaidAmount || 0)) {
+      const newStatus = paidAmount > 0 ? "confirmed" : (o.paymentStatus || "unpaid");
+      db.ref("orders/" + o.id).update({ confirmedPaidAmount: paidAmount, paymentStatus: newStatus }).catch(showFbError);
+    }
+  } else if (o.confirmedPaidAmount !== undefined && o.confirmedPaidAmount !== null) paidAmount = o.confirmedPaidAmount;
   else if (o.paymentMethod === "deposit") paidAmount = o.depositAmount || 0;
   else if (o.paymentMethod === "full" && o.paymentStatus === "paid") paidAmount = o.total || 0;
   const remaining = (o.total || 0) - paidAmount;
