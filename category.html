@@ -64,9 +64,20 @@
     const v = Math.max(1, parseInt(input.value || "1") + delta);
     input.value = v;
   };
-  window.addFromCard = function (p) {
+  window.addFromCard = function (p, btn) {
     const qty = parseInt(document.getElementById("q-" + p.id).value || "1");
     addToCart(p, qty);
+    if (btn) flashAddedState(btn);
+  };
+  window.flashAddedState = function (btn) {
+    if (btn._flashTimer) clearTimeout(btn._flashTimer);
+    if (!btn.dataset.originalText) btn.dataset.originalText = btn.textContent;
+    btn.textContent = "✓ تمت الإضافة";
+    btn.style.background = "var(--amber)";
+    btn._flashTimer = setTimeout(() => {
+      btn.textContent = btn.dataset.originalText;
+      btn.style.background = "";
+    }, 1200);
   };
 
   let currentModalProduct = null;
@@ -82,10 +93,11 @@
     document.getElementById("pm-pieces").textContent = p.piecesPerCarton ? `عدد القطع في الكرتونة: ${p.piecesPerCarton} قطعة` : "";
     document.getElementById("pm-price").textContent = `${(p.price || 0).toFixed(2)} ج.م / الكرتونة`;
     document.getElementById("pm-qty").value = 1;
-    document.getElementById("pm-add-btn").onclick = () => {
+    document.getElementById("pm-add-btn").onclick = (e) => {
       const qty = parseInt(document.getElementById("pm-qty").value || "1");
       addToCart(p, qty);
-      closeProductModal();
+      flashAddedState(e.currentTarget);
+      setTimeout(closeProductModal, 600);
     };
     document.getElementById("product-modal").style.display = "flex";
   };
@@ -121,7 +133,7 @@
               <input id="q-${p.id}" value="1" readonly>
               <button onclick="stepQty('${p.id}',1)">+</button>
             </div>
-            <button class="btn btn-amber" ${stockOk ? "" : "disabled"} onclick='addFromCard(${safeJson(p)})'>أضف للسلة</button>
+            <button class="btn btn-amber" ${stockOk ? "" : "disabled"} onclick='addFromCard(${safeJson(p)}, this)'>أضف للسلة</button>
           </div>
         </div>
       </div>`;
