@@ -227,7 +227,7 @@ function pushOrderToFirebase(cart, customer, extra) {
     customerPhone: customer.phone,
     address: customer.address || "",
     notes: customer.notes || "",
-    items: cart.map(l => ({ name: l.name, category: l.category, price: l.price, qty: l.qty, piecesPerCarton: l.piecesPerCarton || null })),
+    items: cart.map(l => ({ id: l.id, name: l.name, category: l.category, price: l.price, qty: l.qty, piecesPerCarton: l.piecesPerCarton || null })),
     total: cartTotal(cart),
     status: "new",
     createdAt: Date.now(),
@@ -237,10 +237,23 @@ function pushOrderToFirebase(cart, customer, extra) {
   if (extra && extra.depositAmount) order.depositAmount = extra.depositAmount;
   if (extra && extra.paymentProofImage) order.paymentProofImage = extra.paymentProofImage;
   upsertCustomer(customer, order.total);
+  decrementStock(cart);
   /* رقم تسلسلي لكل أوردر (١، ٢، ٣...) عشان يسهل البحث والمتابعة */
   return db.ref("counters/orders").transaction(cur => (cur || 0) + 1).then(result => {
     order.orderNumber = result.snapshot.val();
     return db.ref("orders").push(order).then(ref => ({ id: ref.key, orderNumber: order.orderNumber, order }));
+  });
+}
+
+/* خصم الكمية المباعة من مخزون كل منتج تلقائيًا (بدون ما تقل عن صفر) */
+function decrementStock(cart) {
+  if (typeof db === "undefined") return;
+  cart.forEach(item => {
+    if (!item.category || !item.id) return;
+    db.ref("products/" + item.category + "/" + item.id + "/qty").transaction(current => {
+      const cur = (typeof current === "number") ? current : 0;
+      return Math.max(0, cur - item.qty);
+    }).catch(err => console.warn("تعذر تحديث المخزون:", err));
   });
 }
 
@@ -254,7 +267,7 @@ function pushPendingPayment(cart, customer, extra) {
     customerPhone: customer.phone,
     address: customer.address || "",
     notes: customer.notes || "",
-    items: cart.map(l => ({ name: l.name, category: l.category, price: l.price, qty: l.qty, piecesPerCarton: l.piecesPerCarton || null })),
+    items: cart.map(l => ({ id: l.id, name: l.name, category: l.category, price: l.price, qty: l.qty, piecesPerCarton: l.piecesPerCarton || null })),
     total: cartTotal(cart),
     paymentMethod: (extra && extra.paymentMethod) || "full",
     createdAt: Date.now(),
