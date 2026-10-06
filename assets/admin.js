@@ -12,6 +12,7 @@ function doLoginWithPassword(pass) {
 }
 
 function logout() {
+  sessionStorage.removeItem("sphinxpack_accounts_unlocked");
   firebase.auth().signOut();
 }
 
@@ -55,6 +56,8 @@ function addProduct(data) {
     qty: data.qty,
     barcode: data.barcode || "",
     description: data.description || "",
+    piecesPerCarton: data.piecesPerCarton || null,
+    size: data.size || "",
     image: data.image || "",
     createdAt: Date.now(),
   });
@@ -63,7 +66,24 @@ function updateProduct(category, id, data) {
   return db.ref(`products/${category}/${id}`).update(data);
 }
 function deleteProduct(category, id) {
+  db.ref(`product_costs/${category}/${id}`).remove().catch(() => {});
   return db.ref(`products/${category}/${id}`).remove();
+}
+
+/* تكلفة المنتج (سعر الجملة + الشحن) — مخزّنة في عقدة منفصلة تمامًا عن
+   المنتجات العامة، وصلاحية قراءتها للأدمن المسجّل دخول بس، عشان محدش
+   يقدر يشوفها حتى لو فتح بيانات المنتجات من أدوات المطور. */
+function saveProductCost(category, id, wholesalePrice, shippingCost) {
+  return db.ref(`product_costs/${category}/${id}`).set({
+    wholesalePrice: wholesalePrice || 0,
+    shippingCost: shippingCost || 0,
+  });
+}
+function loadProductCost(category, id) {
+  return db.ref(`product_costs/${category}/${id}`).once("value").then(snap => snap.val() || { wholesalePrice: 0, shippingCost: 0 });
+}
+function deleteProductCost(category, id) {
+  return db.ref(`product_costs/${category}/${id}`).remove();
 }
 function loadAllProductsOnce() {
   return db.ref("products").once("value").then(snap => {
