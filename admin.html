@@ -227,6 +227,7 @@
     <button class="nav-item" data-view="products"><i class="fa-solid fa-box"></i>المنتجات</button>
     <button class="nav-item" data-view="orders"><i class="fa-solid fa-receipt"></i>الأوردرات <span class="pip" id="sidebar-new-pip"></span></button>
     <button class="nav-item" data-view="customers"><i class="fa-solid fa-users"></i>العملاء</button>
+    <button class="nav-item" data-view="accounts" onclick="return guardAccountsAccess(event)"><i class="fa-solid fa-sack-dollar"></i>مركز الحسابات <i class="fa-solid fa-lock" style="font-size:11px;margin-right:4px;opacity:.7"></i></button>
     <button class="nav-item" data-view="settings"><i class="fa-solid fa-gear"></i>الإعدادات</button>
     <div class="sidebar-foot">
       <a href="index.html" target="_blank"><i class="fa-solid fa-arrow-up-left-from-circle"></i> مشاهدة المتجر</a>
@@ -302,6 +303,19 @@
           <div class="form-row two">
             <div class="field"><label>الوصف (اختياري)</label><textarea id="p-desc" placeholder="تفاصيل إضافية عن المنتج"></textarea></div>
           </div>
+          <div class="form-row two" style="background:#fff6ea;border:1px solid #f0dcae;border-radius:8px;padding:12px;margin-top:-4px">
+            <div class="field">
+              <label>سعر الجملة / التكلفة للكرتونة <i class="fa-solid fa-lock" style="font-size:11px;color:#b8923f" title="لا يظهر للعميل أبدًا"></i></label>
+              <input id="p-wholesale" type="number" min="0" step="0.01" placeholder="0.00">
+            </div>
+            <div class="field">
+              <label>سعر الشحن للكرتونة <i class="fa-solid fa-lock" style="font-size:11px;color:#b8923f" title="لا يظهر للعميل أبدًا"></i></label>
+              <input id="p-shipping" type="number" min="0" step="0.01" placeholder="0.00">
+            </div>
+          </div>
+          <p style="font-size:11.5px;color:#b8923f;margin:4px 0 14px">
+            <i class="fa-solid fa-lock"></i> الخانتين دول سريتين تمامًا — مخزّنين في مكان منفصل محمي ومحدش يقدر يشوفهم غيرك، ومش بيوصلوا للعميل في أي شكل من الأشكال.
+          </p>
           <div class="img-upload-row">
             <div class="img-preview" id="img-preview">صورة المنتج</div>
             <div>
@@ -360,6 +374,34 @@
       </section>
 
       <!-- ===== Settings ===== -->
+      <!-- ===== Accounts / Finance ===== -->
+      <section class="view" id="view-accounts">
+        <h1 class="page-title">مركز الحسابات</h1>
+        <div class="breadcrumb">Admin / Accounts <i class="fa-solid fa-lock"></i></div>
+
+        <div class="toolbar">
+          <select id="accounts-month-select" style="padding:9px 14px;border:1px solid var(--input-border);border-radius:8px;font-size:13.5px;font-family:inherit"></select>
+        </div>
+
+        <div class="stat-row">
+          <div class="stat-card"><div class="num" id="acc-revenue">0</div><div class="label">إجمالي المبيعات (الشهر المختار)</div></div>
+          <div class="stat-card alert"><div class="num" id="acc-cost">0</div><div class="label">إجمالي التكلفة (جملة + شحن)</div></div>
+          <div class="stat-card"><div class="num" id="acc-profit">0</div><div class="label">صافي الربح</div></div>
+          <div class="stat-card"><div class="num" id="acc-orders-count">0</div><div class="label">عدد الأوردرات المحتسبة</div></div>
+        </div>
+
+        <div class="card">
+          <h2>تفصيل الربح لكل منتج</h2>
+          <table>
+            <thead><tr><th>المنتج</th><th>الكمية المباعة</th><th>المبيعات</th><th>التكلفة</th><th>صافي الربح</th></tr></thead>
+            <tbody id="accounts-products-tbody"><tr class="empty-row"><td colspan="5">جاري التحميل...</td></tr></tbody>
+          </table>
+        </div>
+        <p style="font-size:12px;color:var(--text-muted)">
+          <i class="fa-solid fa-circle-info"></i> الحساب بيعتمد على سعر الجملة/الشحن الحاليين المسجّلين لكل منتج، مش السعر وقت البيع لو كان اتغيّر بعد كده.
+        </p>
+      </section>
+
       <section class="view" id="view-settings">
         <h1 class="page-title">الإعدادات</h1>
         <div class="breadcrumb">Admin / Settings</div>
@@ -429,6 +471,17 @@
         </div>
 
         <div class="card">
+          <h2>رمز مركز الحسابات</h2>
+          <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px">
+            رمز سري منفصل (أرقام أو حروف) لازم تدخله كل مرة قبل ما تدخل على "مركز الحسابات"، حتى وانت مسجّل دخول أصلاً.
+          </p>
+          <div class="form-row two" style="align-items:end">
+            <div class="field"><label>الرمز السري الجديد</label><input id="finance-pin-input" type="password" placeholder="مثال: 2580"></div>
+            <button class="btn-primary" style="height:41px" onclick="saveFinancePin()">حفظ الرمز</button>
+          </div>
+        </div>
+
+        <div class="card">
           <h2>تغيير كلمة مرور لوحة التحكم</h2>
           <div class="form-row two">
             <div class="field"><label>كلمة المرور الحالية</label><input id="cur-pass" type="password"></div>
@@ -489,6 +542,16 @@
 </style>
 
 <!-- ===== مودال مسح الباركود ===== -->
+<!-- ===== مودال الرمز السري لمركز الحسابات ===== -->
+<div class="scanner-modal" id="pin-modal">
+  <div class="scanner-box" style="max-width:320px;text-align:center">
+    <h4 style="justify-content:center"><i class="fa-solid fa-lock"></i> رمز الدخول لمركز الحسابات</h4>
+    <input type="password" id="pin-input" placeholder="•••••" maxlength="12" style="width:100%;text-align:center;letter-spacing:4px;font-size:20px;padding:12px;margin-top:16px;border:1px solid var(--input-border);border-radius:8px" onkeydown="if(event.key==='Enter')submitPin()">
+    <div id="pin-error" style="color:var(--red);font-size:12.5px;margin-top:8px;min-height:16px"></div>
+    <button class="btn-dark" style="width:100%;margin-top:10px" onclick="submitPin()">دخول</button>
+  </div>
+</div>
+
 <div class="scanner-modal" id="scanner-modal">
   <div class="scanner-box">
     <h4>مسح الباركود <button class="close-x" onclick="closeScanner()">×</button></h4>
@@ -555,6 +618,7 @@ firebase.auth().onAuthStateChanged(user => {
 
 /* ---------------- تنقل السايدبار ---------------- */
 document.querySelectorAll(".nav-item[data-view]").forEach(btn => {
+  if (btn.dataset.view === "accounts") return; /* ليها حماية بالرمز السري في guardAccountsAccess بدل كده */
   btn.addEventListener("click", () => {
     document.querySelectorAll(".nav-item[data-view]").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
@@ -656,6 +720,55 @@ function savePaymentSettings() {
   ]).then(() => showToast("تم حفظ إعدادات الدفع")).catch(showFbError);
 }
 window.savePaymentSettings = savePaymentSettings;
+
+/* ---------------- رمز مركز الحسابات ---------------- */
+let FINANCE_PIN_CACHE = null;
+db.ref("settings/financePin").on("value", snap => { FINANCE_PIN_CACHE = snap.val() || null; });
+function saveFinancePin() {
+  const pin = document.getElementById("finance-pin-input").value.trim();
+  if (pin.length < 4) { showToast("الرمز لازم يكون 4 حروف/أرقام على الأقل"); return; }
+  db.ref("settings/financePin").set(pin).then(() => {
+    document.getElementById("finance-pin-input").value = "";
+    showToast("تم حفظ رمز مركز الحسابات");
+  }).catch(showFbError);
+}
+window.saveFinancePin = saveFinancePin;
+
+function guardAccountsAccess(event) {
+  if (event) event.preventDefault();
+  if (sessionStorage.getItem("sphinxpack_accounts_unlocked") === "1") {
+    switchToView("accounts");
+    return false;
+  }
+  document.getElementById("pin-input").value = "";
+  document.getElementById("pin-error").textContent = "";
+  document.getElementById("pin-modal").classList.add("open");
+  setTimeout(() => document.getElementById("pin-input").focus(), 100);
+  return false;
+}
+function submitPin() {
+  const val = document.getElementById("pin-input").value.trim();
+  if (!FINANCE_PIN_CACHE) {
+    document.getElementById("pin-error").textContent = "محتاج تحدد رمز سري الأول من الإعدادات";
+    return;
+  }
+  if (val !== FINANCE_PIN_CACHE) {
+    document.getElementById("pin-error").textContent = "الرمز غلط";
+    return;
+  }
+  sessionStorage.setItem("sphinxpack_accounts_unlocked", "1");
+  document.getElementById("pin-modal").classList.remove("open");
+  switchToView("accounts");
+}
+window.guardAccountsAccess = guardAccountsAccess;
+window.submitPin = submitPin;
+function switchToView(viewName) {
+  document.querySelectorAll(".nav-item[data-view]").forEach(b => b.classList.toggle("active", b.dataset.view === viewName));
+  document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+  document.getElementById("view-" + viewName).classList.add("active");
+  if (viewName === "accounts") renderAccountsView();
+  closeSidebar();
+}
 function saveContactNumber() {
   const raw = document.getElementById("contact-number-input").value.trim().replace(/[^0-9]/g, "");
   if (raw.length < 10) { showToast("اكتب رقم هاتف صحيح"); return; }
@@ -725,6 +838,8 @@ function resetForm() {
   document.getElementById("p-desc").value = "";
   document.getElementById("p-pieces").value = "";
   document.getElementById("p-size").value = "";
+  document.getElementById("p-wholesale").value = "";
+  document.getElementById("p-shipping").value = "";
   document.getElementById("img-preview").innerHTML = "صورة المنتج";
   pendingImageBase64 = "";
   editingProduct = null;
@@ -741,19 +856,25 @@ function saveProduct() {
   const description = document.getElementById("p-desc").value.trim();
   const piecesPerCarton = parseInt(document.getElementById("p-pieces").value || "0") || null;
   const size = document.getElementById("p-size").value.trim();
+  const wholesalePrice = parseFloat(document.getElementById("p-wholesale").value || "0");
+  const shippingCost = parseFloat(document.getElementById("p-shipping").value || "0");
   if (!name || !price) { showToast("اكتب اسم المنتج والسعر على الأقل"); return; }
   const data = { name, category, qty, price, barcode, description, piecesPerCarton, size, image: pendingImageBase64 };
   if (editingProduct) {
     const upd = { name, qty, price, barcode, description, piecesPerCarton, size };
     if (pendingImageBase64) upd.image = pendingImageBase64;
     if (editingProduct.category !== category) {
-      deleteProduct(editingProduct.category, editingProduct.id).then(() => addProduct(data));
+      deleteProductCost(editingProduct.category, editingProduct.id).catch(() => {});
+      deleteProduct(editingProduct.category, editingProduct.id).then(() =>
+        addProduct(data).then(ref => saveProductCost(category, ref.key, wholesalePrice, shippingCost))
+      );
     } else {
       updateProduct(editingProduct.category, editingProduct.id, upd);
+      saveProductCost(category, editingProduct.id, wholesalePrice, shippingCost);
     }
     showToast("تم تعديل المنتج");
   } else {
-    addProduct(data);
+    addProduct(data).then(ref => saveProductCost(category, ref.key, wholesalePrice, shippingCost));
     showToast("تم إضافة المنتج");
   }
   resetForm();
@@ -768,6 +889,12 @@ function editProduct(p) {
   document.getElementById("p-desc").value = p.description || "";
   document.getElementById("p-pieces").value = p.piecesPerCarton || "";
   document.getElementById("p-size").value = p.size || "";
+  document.getElementById("p-wholesale").value = "";
+  document.getElementById("p-shipping").value = "";
+  loadProductCost(p.category, p.id).then(cost => {
+    document.getElementById("p-wholesale").value = cost.wholesalePrice || "";
+    document.getElementById("p-shipping").value = cost.shippingCost || "";
+  });
   document.getElementById("img-preview").innerHTML = p.image ? `<img src="${p.image}">` : "صورة المنتج";
   pendingImageBase64 = "";
   document.getElementById("form-title").textContent = "تعديل: " + p.name;
@@ -1074,7 +1201,76 @@ function initDashboard() {
       allOrders = newList; updateOrderStats(); renderOrdersTable();
     }, showFbError);
   }).catch(showFbError);
+
+  db.ref("product_costs").on("value", snap => {
+    productCosts = snap.val() || {};
+    if (document.getElementById("view-accounts").classList.contains("active")) renderAccountsView();
+  }, showFbError);
 }
+
+/* ---------------- مركز الحسابات ---------------- */
+let productCosts = {};
+function monthKey(ts) {
+  const d = new Date(ts);
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+}
+function monthLabel(key) {
+  const [y, m] = key.split("-").map(Number);
+  const names = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
+  return `${names[m-1]} ${y}`;
+}
+function populateMonthSelect() {
+  const sel = document.getElementById("accounts-month-select");
+  const keys = new Set();
+  allOrders.forEach(o => { if (o.createdAt) keys.add(monthKey(o.createdAt)); });
+  keys.add(monthKey(Date.now()));
+  const sorted = Array.from(keys).sort().reverse();
+  const current = sel.value;
+  sel.innerHTML = sorted.map(k => `<option value="${k}">${monthLabel(k)}</option>`).join("");
+  sel.value = sorted.includes(current) ? current : monthKey(Date.now());
+}
+function renderAccountsView() {
+  populateMonthSelect();
+  const sel = document.getElementById("accounts-month-select");
+  const selectedMonth = sel.value;
+  const monthOrders = allOrders.filter(o => o.createdAt && monthKey(o.createdAt) === selectedMonth);
+
+  let revenue = 0, cost = 0;
+  const perProduct = {};
+  monthOrders.forEach(o => {
+    (o.items || []).forEach(item => {
+      const lineRevenue = (item.price || 0) * (item.qty || 0);
+      const key = item.category + "/" + item.id;
+      const costInfo = (productCosts[item.category] && productCosts[item.category][item.id]) || { wholesalePrice: 0, shippingCost: 0 };
+      const unitCost = (costInfo.wholesalePrice || 0) + (costInfo.shippingCost || 0);
+      const lineCost = unitCost * (item.qty || 0);
+      revenue += lineRevenue;
+      cost += lineCost;
+      if (!perProduct[key]) perProduct[key] = { name: item.name, qty: 0, revenue: 0, cost: 0 };
+      perProduct[key].qty += item.qty || 0;
+      perProduct[key].revenue += lineRevenue;
+      perProduct[key].cost += lineCost;
+    });
+  });
+  const profit = revenue - cost;
+
+  document.getElementById("acc-revenue").textContent = revenue.toFixed(2) + " ج.م";
+  document.getElementById("acc-cost").textContent = cost.toFixed(2) + " ج.م";
+  document.getElementById("acc-profit").textContent = profit.toFixed(2) + " ج.م";
+  document.getElementById("acc-orders-count").textContent = monthOrders.length;
+
+  const tbody = document.getElementById("accounts-products-tbody");
+  const rows = Object.values(perProduct).sort((a, b) => (b.revenue - b.cost) - (a.revenue - a.cost));
+  tbody.innerHTML = rows.length ? rows.map(r => `
+    <tr>
+      <td>${r.name}</td>
+      <td>${r.qty}</td>
+      <td>${r.revenue.toFixed(2)} ج.م</td>
+      <td>${r.cost.toFixed(2)} ج.م</td>
+      <td style="font-weight:700;color:${(r.revenue-r.cost)>=0?'var(--green-text)':'var(--red)'}">${(r.revenue-r.cost).toFixed(2)} ج.م</td>
+    </tr>`).join("") : `<tr class="empty-row"><td colspan="5">مفيش مبيعات في الشهر ده</td></tr>`;
+}
+document.getElementById("accounts-month-select").addEventListener("change", renderAccountsView);
 </script>
 </body>
 </html>
