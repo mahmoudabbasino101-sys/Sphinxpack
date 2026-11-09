@@ -419,6 +419,8 @@ function mountFooter() {
         <a href="https://wa.me/${WHATSAPP_NUMBER}" target="_blank">واتساب: ${localPhone(WHATSAPP_NUMBER)}</a>
         <a href="tel:${localPhone(WHATSAPP_NUMBER)}">اتصال: ${localPhone(WHATSAPP_NUMBER)}</a>
         <a href="policy.html">سياسة الاستبدال والاسترجاع</a>
+        <a href="shipping-policy.html">سياسة الشحن والتوصيل</a>
+        <a href="privacy-policy.html">سياسة الخصوصية</a>
       </div>
     </div>
     <div class="bottom">© ${new Date().getFullYear()} SphinxPack — جميع الحقوق محفوظة</div>
