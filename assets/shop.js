@@ -234,6 +234,7 @@ function pushOrderToFirebase(cart, customer, extra) {
     paymentMethod: (extra && extra.paymentMethod) || "cod",
     paymentStatus: (extra && extra.paymentStatus) || "unpaid",
   };
+  if (customer.location) order.location = customer.location;
   if (extra && extra.depositAmount) order.depositAmount = extra.depositAmount;
   if (extra && extra.paymentProofImage) order.paymentProofImage = extra.paymentProofImage;
   upsertCustomer(customer, order.total);
@@ -272,6 +273,7 @@ function pushPendingPayment(cart, customer, extra) {
     paymentMethod: (extra && extra.paymentMethod) || "full",
     createdAt: Date.now(),
   };
+  if (customer.location) record.location = customer.location;
   if (extra && extra.depositAmount) record.depositAmount = extra.depositAmount;
   return db.ref("pending_payments").push(record).then(ref => ({ id: ref.key }));
 }
