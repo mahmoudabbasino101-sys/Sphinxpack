@@ -874,11 +874,8 @@ function saveProduct() {
     }
     showToast("تم تعديل المنتج");
   } else {
-    addProduct(data)
-      .then(ref => saveProductCost(category, ref.key, wholesalePrice, shippingCost))
-      .then(() => { showToast("تم إضافة المنتج"); resetForm(); })
-      .catch(showFbError);
-    return;
+    addProduct(data).then(ref => saveProductCost(category, ref.key, wholesalePrice, shippingCost));
+    showToast("تم إضافة المنتج");
   }
   resetForm();
 }
