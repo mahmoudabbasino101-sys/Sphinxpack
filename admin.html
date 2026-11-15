@@ -874,7 +874,7 @@ function assignOrderToCourier(oid) {
       : (o.paymentMethod === "deposit" ? (o.depositAmount || 0) : 0));
     up["courier_orders/" + uid + "/" + oid] = {
       orderNumber: o.orderNumber || null, customerName: o.customerName || "", customerPhone: o.customerPhone || "",
-      address: o.address || "", notes: o.notes || "", total: o.total || 0, remaining: Math.max(0, (o.total || 0) - paid),
+      address: o.address || "", location: o.location || null, notes: o.notes || "", total: o.total || 0, remaining: Math.max(0, (o.total || 0) - paid),
       paymentMethod: o.paymentMethod || "cod",
       itemsText: (o.items || []).map(i => i.name + " × " + i.qty).join("\n"),
       assignedAt: Date.now(), status: "assigned"
@@ -1279,6 +1279,7 @@ function openOrderModal(id) {
     <div><strong>العميل:</strong> ${o.customerName || "—"}</div>
     <div><strong>الهاتف:</strong> ${o.customerPhone || "—"}</div>
     <div><strong>العنوان:</strong> ${o.address || "—"}</div>
+    ${o.location ? `<div><strong>الموقع:</strong> <a href="https://www.google.com/maps/search/?api=1&query=${o.location.lat},${o.location.lng}" target="_blank" style="font-weight:700">📍 افتح موقع العميل على الخريطة</a></div>` : ""}
     <div><strong>ملاحظات:</strong> ${o.notes || "—"}</div>
     ${o.paymentProofImage ? `<div style="margin-top:10px"><strong>صورة إثبات التحويل:</strong><br><img src="${o.paymentProofImage}" style="max-width:100%;border-radius:8px;margin-top:6px;border:1px solid var(--border);cursor:pointer" onclick="window.open(this.src,'_blank')"></div>` : ""}
     <div style="margin-top:10px"><strong>الأصناف:</strong></div>
