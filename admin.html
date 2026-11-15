@@ -225,6 +225,7 @@
     </div>
     <button class="nav-item active" data-view="dashboard"><i class="fa-solid fa-grip"></i>لوحة التحكم</button>
     <button class="nav-item" data-view="products"><i class="fa-solid fa-box"></i>المنتجات</button>
+    <a class="nav-item" href="staff.html" target="_blank"><i class="fa-solid fa-user-pen"></i>صفحة الموظفين</a>
     <button class="nav-item" data-view="orders"><i class="fa-solid fa-receipt"></i>الأوردرات <span class="pip" id="sidebar-new-pip"></span></button>
     <button class="nav-item" data-view="customers"><i class="fa-solid fa-users"></i>العملاء</button>
     <button class="nav-item" data-view="accounts" onclick="return guardAccountsAccess(event)"><i class="fa-solid fa-sack-dollar"></i>مركز الحسابات <i class="fa-solid fa-lock" style="font-size:11px;margin-right:4px;opacity:.7"></i></button>
@@ -589,10 +590,15 @@ function changePassword() {
 /* ---------------- تنبيه واضح لو Firebase مش شغال (بدل ما الصفحة تفضل فاضية بصمت) ---------------- */
 function showFbError(err) {
   console.error(err);
+  try {
+    const u = firebase.auth().currentUser;
+    err = err || {};
+    err.message = (err.message || "") + " | مسجّل دخول: " + (u ? u.email : "لأ (auth = null)") + " | الدومين: " + location.hostname;
+  } catch (e) {}
   const banner = document.getElementById("fb-error-banner");
   banner.style.display = "block";
   banner.textContent = "⚠ تعذر الاتصال بقاعدة البيانات (" + (err && err.code ? err.code : "خطأ غير معروف") +
-    ") — تأكد إن صلاحيات Realtime Database (Rules) متظبطة صح، وإن ملف assets/firebase-init.js فيه بيانات مشروعك الصحيحة.";
+    ") [" + (err && err.message ? err.message : "") + "] — تأكد إن صلاحيات Realtime Database (Rules) متظبطة صح، وإن ملف assets/firebase-init.js فيه بيانات مشروعك الصحيحة.";
 }
 
 /* ---------------- تسجيل الدخول (Firebase Authentication) ---------------- */
@@ -874,8 +880,11 @@ function saveProduct() {
     }
     showToast("تم تعديل المنتج");
   } else {
-    addProduct(data).then(ref => saveProductCost(category, ref.key, wholesalePrice, shippingCost));
-    showToast("تم إضافة المنتج");
+    addProduct(data)
+      .then(ref => saveProductCost(category, ref.key, wholesalePrice, shippingCost))
+      .then(() => { showToast("تم إضافة المنتج"); resetForm(); })
+      .catch(showFbError);
+    return;
   }
   resetForm();
 }
