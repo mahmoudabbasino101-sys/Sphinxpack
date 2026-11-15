@@ -430,6 +430,45 @@
         </div>
 
         <div class="card">
+          <h2>حسابات الموظفين</h2>
+          <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px">
+            ضيف إيميل وباسورد الموظف هنا وهيقدر يدخل من صفحة الموظفين (staff.html) ويضيف ويعدّل المنتجات بس. من غير ما تعدّل أي كود.
+          </p>
+          <div class="form-row two">
+            <div class="field"><label>إيميل الموظف</label><input id="staff-email" type="email" dir="ltr" placeholder="staff@sphinxpack.app"></div>
+            <div class="field"><label>كلمة المرور (6 حروف على الأقل)</label><input id="staff-pass" type="text" dir="ltr" autocomplete="off"></div>
+          </div>
+          <button class="btn-primary" id="add-staff-btn" onclick="addStaff()" style="margin-bottom:16px"><i class="fa-solid fa-plus"></i> إضافة موظف</button>
+          <table>
+            <thead><tr><th>الإيميل</th><th>تاريخ الإضافة</th><th></th></tr></thead>
+            <tbody id="staff-tbody"><tr class="empty-row"><td colspan="3">لا يوجد موظفين</td></tr></tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <h2>موظفو التوصيل</h2>
+          <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px">
+            كل مندوب بيدخل بإيميله وباسورده من صفحة <strong>courier.html</strong> ويشوف الفواتير اللي اتعيّنت له بس. عيّن الفاتورة من مودال الأوردر.
+          </p>
+          <div class="form-row two">
+            <div class="field"><label>اسم المندوب</label><input id="courier-name" type="text" placeholder="مثال: أحمد"></div>
+            <div class="field"><label>رقم هاتفه (اختياري)</label><input id="courier-phone" type="text" dir="ltr"></div>
+          </div>
+          <div class="form-row two">
+            <div class="field"><label>الإيميل</label><input id="courier-email" type="email" dir="ltr" placeholder="ahmed@sphinxpack.app"></div>
+            <div class="field"><label>كلمة المرور (6 حروف على الأقل)</label><input id="courier-pass" type="text" dir="ltr" autocomplete="off"></div>
+          </div>
+          <button class="btn-primary" id="add-courier-btn" onclick="addCourier()" style="margin-bottom:16px"><i class="fa-solid fa-plus"></i> إضافة مندوب</button>
+          <div class="field" style="max-width:220px"><label>تقرير شهر</label><input type="month" id="courier-month" onchange="renderCouriers()"></div>
+          <div style="overflow-x:auto">
+          <table>
+            <thead><tr><th>المندوب</th><th>تسليمات الشهر</th><th>قيمة الفواتير</th><th>تحصيل كاش</th><th>معاه دلوقتي</th><th></th></tr></thead>
+            <tbody id="couriers-tbody"><tr class="empty-row"><td colspan="6">لا يوجد مناديب</td></tr></tbody>
+          </table>
+          </div>
+        </div>
+
+        <div class="card">
           <h2>رقم التواصل (واتساب / اتصال)</h2>
           <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px">
             الرقم ده هو اللي بيستقبل الطلبات عبر واتساب، والظاهر في الموقع كله.
@@ -606,6 +645,8 @@ function showDashboard() {
   document.getElementById("login-screen").classList.add("hidden");
   document.getElementById("dashboard").classList.remove("hidden");
   initDashboard();
+  loadStaffList();
+  loadCouriers();
 }
 function showLoginScreen() {
   document.getElementById("dashboard").classList.add("hidden");
@@ -640,6 +681,215 @@ document.getElementById("mobile-menu-btn").addEventListener("click", openSidebar
 document.getElementById("sidebar-overlay").addEventListener("click", closeSidebar);
 
 /* ---------------- توست بسيط ---------------- */
+
+/* ---------- حسابات الموظفين ---------- */
+let _staffApp = null, _staffListening = false;
+function getStaffApp() {
+  if (!_staffApp) {
+    _staffApp = firebase.initializeApp(firebaseConfig, "staffCreator"); // نسخة تانية عشان إنشاء الحساب ما يطلعش الأدمن
+    _staffApp.auth().setPersistence(firebase.auth.Auth.Persistence.NONE).catch(() => {});
+  }
+  return _staffApp;
+}
+async function addStaff() {
+  const email = document.getElementById("staff-email").value.trim().toLowerCase();
+  const pass = document.getElementById("staff-pass").value;
+  if (!email || pass.length < 6) { showToast("اكتب إيميل وباسورد (6 حروف على الأقل)"); return; }
+  const btn = document.getElementById("add-staff-btn");
+  btn.disabled = true;
+  try {
+    const auth = getStaffApp().auth();
+    let uid;
+    try {
+      const cred = await auth.createUserWithEmailAndPassword(email, pass);
+      uid = cred.user.uid;
+    } catch (e) {
+      if (e.code === "auth/email-already-in-use") {
+        // الحساب موجود قبل كده: ندخل بالباسورد عشان نجيب الـ uid ونديله صلاحية الموظف
+        const cred = await auth.signInWithEmailAndPassword(email, pass);
+        uid = cred.user.uid;
+      } else throw e;
+    }
+    await auth.signOut();
+    await db.ref("staff/" + uid).set({ email, createdAt: firebase.database.ServerValue.TIMESTAMP });
+    document.getElementById("staff-email").value = "";
+    document.getElementById("staff-pass").value = "";
+    showToast("تمت إضافة الموظف");
+  } catch (e) {
+    console.error(e);
+    const msg = {
+      "auth/invalid-email": "الإيميل غير صحيح",
+      "auth/weak-password": "كلمة المرور ضعيفة (6 حروف على الأقل)",
+      "auth/wrong-password": "الإيميل موجود بباسورد مختلف — اكتب الباسورد الصحيح",
+      "auth/invalid-credential": "الإيميل موجود بباسورد مختلف — اكتب الباسورد الصحيح",
+      "auth/operation-not-allowed": "فعّل Email/Password من Firebase ← Authentication ← Sign-in method",
+      "PERMISSION_DENIED": "الصلاحيات (Rules) لسه ماتنشرتش بالنسخة الجديدة"
+    }[e.code];
+    showToast(msg || ("تعذر إضافة الموظف (" + (e.code || "خطأ") + ")"));
+  }
+  btn.disabled = false;
+}
+function loadStaffList() {
+  if (_staffListening) return;
+  _staffListening = true;
+  db.ref("staff").on("value", snap => {
+    const tb = document.getElementById("staff-tbody");
+    const v = snap.val() || {};
+    const rows = Object.entries(v);
+    if (!rows.length) { tb.innerHTML = '<tr class="empty-row"><td colspan="3">لا يوجد موظفين</td></tr>'; return; }
+    tb.innerHTML = rows.map(([uid, st]) => {
+      const d = st.createdAt ? new Date(st.createdAt).toLocaleDateString("ar-EG") : "—";
+      const em = String(st.email || uid).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+      return `<tr><td dir="ltr" style="text-align:right">${em}</td><td>${d}</td><td><button class="btn-ghost" onclick="removeStaff('${uid}')">إيقاف</button></td></tr>`;
+    }).join("");
+  }, err => console.error(err));
+}
+function removeStaff(uid) {
+  if (!confirm("إيقاف الموظف ده؟ مش هيقدر يعدّل منتجات تاني.")) return;
+  db.ref("staff/" + uid).remove().then(() => showToast("تم إيقاف الموظف")).catch(showFbError);
+}
+
+
+/* ---------- موظفو التوصيل ---------- */
+let couriersMap = {}, courierOrdersMap = {}, _courierListening = false;
+const _escC = x => String(x ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+async function getOrCreateUid(email, pass) {
+  const auth = getStaffApp().auth();
+  let uid;
+  try {
+    uid = (await auth.createUserWithEmailAndPassword(email, pass)).user.uid;
+  } catch (e) {
+    if (e.code === "auth/email-already-in-use") uid = (await auth.signInWithEmailAndPassword(email, pass)).user.uid;
+    else throw e;
+  }
+  await auth.signOut();
+  return uid;
+}
+async function addCourier() {
+  const name = document.getElementById("courier-name").value.trim();
+  const phone = document.getElementById("courier-phone").value.trim();
+  const email = document.getElementById("courier-email").value.trim().toLowerCase();
+  const pass = document.getElementById("courier-pass").value;
+  if (!name || !email || pass.length < 6) { showToast("اكتب الاسم والإيميل وباسورد (6 حروف على الأقل)"); return; }
+  const btn = document.getElementById("add-courier-btn"); btn.disabled = true;
+  try {
+    const uid = await getOrCreateUid(email, pass);
+    await db.ref("couriers/" + uid).set({ name, phone, email, active: true, createdAt: firebase.database.ServerValue.TIMESTAMP });
+    ["courier-name","courier-phone","courier-email","courier-pass"].forEach(i => document.getElementById(i).value = "");
+    showToast("تمت إضافة المندوب");
+  } catch (e) {
+    console.error(e);
+    const msg = {
+      "auth/invalid-email": "الإيميل غير صحيح",
+      "auth/weak-password": "كلمة المرور ضعيفة (6 حروف على الأقل)",
+      "auth/wrong-password": "الإيميل موجود بباسورد مختلف — اكتب الباسورد الصحيح",
+      "auth/invalid-credential": "الإيميل موجود بباسورد مختلف — اكتب الباسورد الصحيح",
+      "PERMISSION_DENIED": "انشر القواعد (Rules) الجديدة الأول"
+    }[e.code];
+    showToast(msg || ("تعذر إضافة المندوب (" + (e.code || "خطأ") + ")"));
+  }
+  btn.disabled = false;
+}
+function toggleCourier(uid) {
+  const c = couriersMap[uid]; if (!c) return;
+  db.ref("couriers/" + uid + "/active").set(c.active === false).catch(showFbError);
+}
+function loadCouriers() {
+  if (_courierListening) return;
+  _courierListening = true;
+  db.ref("couriers").on("value", s => { couriersMap = s.val() || {}; renderCouriers(); refreshCourierBlock(); }, showFbError);
+  db.ref("courier_orders").on("value", s => { courierOrdersMap = s.val() || {}; renderCouriers(); refreshCourierBlock(); }, showFbError);
+}
+function renderCouriers() {
+  const tb = document.getElementById("couriers-tbody"); if (!tb) return;
+  const mi = document.getElementById("courier-month");
+  if (!mi.value) { const d = new Date(); mi.value = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0"); }
+  const [y, m] = mi.value.split("-").map(Number);
+  const from = new Date(y, m - 1, 1).getTime(), to = new Date(y, m, 1).getTime();
+  const rows = Object.entries(couriersMap);
+  if (!rows.length) { tb.innerHTML = '<tr class="empty-row"><td colspan="6">لا يوجد مناديب</td></tr>'; return; }
+  tb.innerHTML = rows.map(([uid, c]) => {
+    const list = Object.values(courierOrdersMap[uid] || {});
+    const done = list.filter(o => o.status === "delivered" && o.deliveredAt >= from && o.deliveredAt < to);
+    const total = done.reduce((a, o) => a + (o.total || 0), 0);
+    const cash = done.reduce((a, o) => a + (o.remaining || 0), 0);
+    const pend = list.filter(o => o.status === "assigned" || o.status === "out").length;
+    return `<tr>
+      <td>${_escC(c.name)}<div style="font-size:11.5px;color:var(--text-muted)" dir="ltr">${_escC(c.email)}</div></td>
+      <td><strong>${done.length}</strong></td><td>${total.toFixed(0)} ج.م</td><td>${cash.toFixed(0)} ج.م</td><td>${pend}</td>
+      <td><button class="btn-ghost" onclick="toggleCourier('${uid}')">${c.active === false ? "تفعيل" : "إيقاف"}</button></td></tr>`;
+  }).join("");
+}
+
+function courierBlockHtml(o) {
+  const opts = Object.entries(couriersMap).filter(([u, c]) => c.active !== false)
+    .map(([u, c]) => `<option value="${u}" ${o.courierUid === u ? "selected" : ""}>${_escC(c.name || c.email)}</option>`).join("");
+  const co = o.courierUid && courierOrdersMap[o.courierUid] ? courierOrdersMap[o.courierUid][o.id] : null;
+  const label = { assigned: "مُسنَد (لسه ماخرجش)", out: "في الطريق للعميل 🚚", delivered: "تم التسليم ✅", failed: "تعذر التسليم ❌" };
+  return `
+    <label style="font-size:13px;font-weight:700;display:block;margin-bottom:6px">موظف التوصيل</label>
+    <div style="display:flex;gap:8px">
+      <select id="assign-courier-select" style="flex:1;padding:9px 10px;border:1px solid var(--input-border);border-radius:7px;font-size:13.5px">
+        <option value="">— بدون —</option>${opts}
+      </select>
+      <button class="btn-dark" onclick="assignOrderToCourier('${o.id}')">تعيين</button>
+    </div>
+    ${co ? `<div style="margin-top:6px;font-size:13px">حالة التوصيل: <strong>${label[co.status] || co.status}</strong></div>` : ""}
+    ${co && (co.status === "out" || co.status === "assigned") ? `
+    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+      <button class="btn-ghost" onclick="copyTrackLink('${o.id}')">نسخ لينك التتبع</button>
+      <a class="btn-ghost" style="text-decoration:none" target="_blank" href="${_trackWa(o)}">إرسال اللينك للعميل واتساب</a>
+    </div>` : ""}`;
+}
+function refreshCourierBlock() {
+  const el = document.getElementById("courier-block");
+  if (!el || !openOrder) return;
+  const o = allOrders.find(x => x.id === openOrder.id); if (!o) return;
+  const sel = document.getElementById("assign-courier-select");
+  const keep = sel ? sel.value : null;
+  el.innerHTML = courierBlockHtml(o);
+  if (keep !== null && document.getElementById("assign-courier-select")) document.getElementById("assign-courier-select").value = keep;
+}
+function _trackUrl(oid) { return new URL("track.html?o=" + oid, location.href).href; }
+function _trackWa(o) {
+  let d = String(o.customerPhone || "").replace(/\D/g, ""); if (d.startsWith("00")) d = d.slice(2); if (d.startsWith("0")) d = "20" + d.slice(1);
+  const txt = `أهلاً ${o.customerName || ""}، تقدر تتابع طلبك رقم ${o.orderNumber || ""} ومكان المندوب لحظة بلحظة من هنا: ${_trackUrl(o.id)}`;
+  return "https://wa.me/" + d + "?text=" + encodeURIComponent(txt);
+}
+function copyTrackLink(oid) {
+  const url = _trackUrl(oid);
+  (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(() => showToast("تم نسخ لينك التتبع")).catch(() => prompt("انسخ اللينك:", url));
+}
+function assignOrderToCourier(oid) {
+  const o = allOrders.find(x => x.id === oid); if (!o) return;
+  const uid = document.getElementById("assign-courier-select").value;
+  if ((o.courierUid || "") === uid) { showToast(uid ? "الأوردر معيّن للمندوب ده بالفعل" : "الأوردر مش معيّن لحد"); return; }
+  const up = {};
+  if (o.courierUid) up["courier_orders/" + o.courierUid + "/" + oid] = null;
+  if (uid) {
+    const c = couriersMap[uid];
+    const paid = o.confirmedPaidAmount != null ? o.confirmedPaidAmount
+      : (o.paymentMethod === "full" && o.paymentStatus === "paid" ? (o.total || 0)
+      : (o.paymentMethod === "deposit" ? (o.depositAmount || 0) : 0));
+    up["courier_orders/" + uid + "/" + oid] = {
+      orderNumber: o.orderNumber || null, customerName: o.customerName || "", customerPhone: o.customerPhone || "",
+      address: o.address || "", notes: o.notes || "", total: o.total || 0, remaining: Math.max(0, (o.total || 0) - paid),
+      paymentMethod: o.paymentMethod || "cod",
+      itemsText: (o.items || []).map(i => i.name + " × " + i.qty).join("\n"),
+      assignedAt: Date.now(), status: "assigned"
+    };
+    up["orders/" + oid + "/courierUid"] = uid;
+    up["orders/" + oid + "/courierName"] = c.name || c.email;
+    up["orders/" + oid + "/courierAssignedAt"] = Date.now();
+  } else {
+    up["orders/" + oid + "/courierUid"] = null;
+    up["orders/" + oid + "/courierName"] = null;
+    up["orders/" + oid + "/courierAssignedAt"] = null;
+  }
+  db.ref().update(up).then(() => showToast(uid ? "تم تعيين الأوردر للمندوب" : "تم إلغاء التعيين")).catch(showFbError);
+}
+
 function showToast(msg){
   let t = document.querySelector(".toast");
   if(!t){ t=document.createElement("div"); t.className="toast"; document.body.appendChild(t); }
@@ -995,7 +1245,7 @@ function renderOrdersTable() {
       <td>${o.customerPhone || "—"}</td>
       <td class="order-detail">${(o.items||[]).map(i=>`<div>${i.name} × ${i.qty}</div>`).join("")}</td>
       <td>${(o.total??0).toFixed(2)} ج.م</td>
-      <td><span class="status-pill ${o.status==="done"?"done":"new"}">${o.status==="done"?"تم التسليم":"جديد"}</span></td>
+      <td><span class="status-pill ${o.status==="done"?"done":"new"}">${o.status==="done"?"تم التسليم":"جديد"}</span>${o.courierName?`<div style="font-size:11.5px;color:var(--text-muted);margin-top:4px">🚚 ${o.courierName}</div>`:""}</td>
       <td onclick="event.stopPropagation()">${o.status!=="done" ? `<button class="btn-primary" style="padding:7px 12px;font-size:12.5px" onclick="handleConfirmOrder('${o.id}')">تأكيد الاستلام</button>` : ""}
         <i class="fa-solid fa-trash-can" title="حذف الأوردر" style="cursor:pointer;color:var(--red);margin-right:10px" onclick="handleDeleteOrder('${o.id}')"></i></td>
     </tr>`).join("") : `<tr class="empty-row"><td colspan="8">لا توجد أوردرات هنا حاليًا</td></tr>`;
@@ -1040,6 +1290,7 @@ function openOrderModal(id) {
     ${o.paymentMethod === "deposit" ? `
     <div style="margin-top:4px">المدفوع كعربون: <strong>${(o.depositAmount||0).toFixed(2)} ج.م</strong> — الباقي عند الاستلام: <strong>${((o.total||0)-(o.depositAmount||0)).toFixed(2)} ج.م</strong></div>` : ""}
     ${o.paymentMethod === "full" && o.paymentStatus === "paid" ? `<div style="margin-top:4px;color:var(--green-text)">تم السداد بالكامل أونلاين</div>` : ""}
+    <div id="courier-block" style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">${courierBlockHtml(o)}</div>
     <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
       <label style="font-size:13px;font-weight:700;display:block;margin-bottom:6px">المبلغ المدفوع فعليًا (بعد مراجعة صورة الإثبات)</label>
       <div style="display:flex;gap:8px">
