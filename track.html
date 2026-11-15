@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>تتبع طلبك — SphinxPack</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Tajawal',sans-serif;background:#eef1f5;color:#1f2430}
+  header{background:#151d2e;color:#fff;padding:14px 16px;font-weight:800;font-size:17px}
+  .box{max-width:640px;margin:0 auto;padding:14px}
+  .card{background:#fff;border:1px solid #e4e7ec;border-radius:12px;padding:16px;margin-bottom:12px}
+  #status{font-size:17px;font-weight:800;margin-bottom:4px}
+  #sub{color:#6b7280;font-size:13.5px}
+  #map{height:55vh;min-height:320px;border-radius:12px;border:1px solid #e4e7ec}
+  .hidden{display:none}
+  .truck{font-size:26px;line-height:30px;text-align:center}
+</style>
+</head>
+<body>
+<header>🚚 تتبع طلبك — SphinxPack</header>
+<div class="box">
+  <div class="card">
+    <div id="status">جاري التحميل...</div>
+    <div id="sub"></div>
+  </div>
+  <div id="map" class="hidden"></div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="assets/firebase-init.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+  const oid = new URLSearchParams(location.search).get("o");
+  const $ = id => document.getElementById(id);
+  let map = null, marker = null, last = null, orderNo = "";
+
+  if (!oid) { $("status").textContent = "اللينك غير صحيح"; }
+  else {
+    db.ref("orders/" + oid + "/orderNumber").once("value").then(s => { orderNo = s.val() ? " #" + s.val() : ""; paint(); }).catch(() => {});
+    db.ref("tracking/" + oid).on("value", s => { last = s.val(); paint(); }, () => { $("status").textContent = "تعذر تحميل بيانات التتبع"; });
+    setInterval(paint, 20000);
+  }
+
+  function ago(ts) {
+    const m = Math.floor((Date.now() - ts) / 60000);
+    return m < 1 ? "من أقل من دقيقة" : "من " + m + " دقيقة";
+  }
+
+  function paint() {
+    if (!oid) return;
+    const st = $("status"), sub = $("sub");
+    if (!last) { st.textContent = "طلبك" + orderNo + " قيد التجهيز"; sub.textContent = "هيظهر مكان المندوب هنا أول ما يخرج بالطلب."; return; }
+    if (last.status === "delivered") { st.textContent = "✅ تم تسليم طلبك" + orderNo; sub.textContent = "شكراً لتعاملك مع SphinxPack."; $("map").classList.add("hidden"); return; }
+    if (last.status === "ended") { st.textContent = "التتبع متوقف"; sub.textContent = "تواصل معنا لو محتاج أي مساعدة."; $("map").classList.add("hidden"); return; }
+
+    st.textContent = "🚚 طلبك" + orderNo + " في الطريق إليك" + (last.courierName ? " مع " + last.courierName : "");
+    if (last.lat == null || last.lng == null) { sub.textContent = "المندوب خرج بطلبك، بنستنى وصول موقعه..."; return; }
+    sub.textContent = "آخر تحديث للموقع " + ago(last.ts) + (Date.now() - last.ts > 5 * 60000 ? " — ممكن يكون المندوب في منطقة ضعيفة الشبكة" : "");
+
+    $("map").classList.remove("hidden");
+    const pos = [last.lat, last.lng];
+    if (!map) {
+      map = L.map("map").setView(pos, 15);
+      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap" }).addTo(map);
+      marker = L.marker(pos, { icon: L.divIcon({ html: "🚚", className: "truck", iconSize: [30, 30] }) }).addTo(map);
+    } else { marker.setLatLng(pos); map.panTo(pos); }
+  }
+</script>
+</body>
+</html>

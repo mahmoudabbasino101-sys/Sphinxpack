@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>موظف التوصيل — SphinxPack</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#eef1f5;--card:#fff;--border:#e4e7ec;--text:#1f2430;--muted:#6b7280;--blue:#2f6fed;--green:#1e9e4e;--red:#e0455a;--amber:#d98a00;--dark:#151d2e}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--text)}
+  .hidden{display:none!important}
+  .wrap{max-width:640px;margin:0 auto;padding:14px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px}
+  h1{font-size:19px;margin:0} h2{font-size:15px;margin:0 0 12px}
+  .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+  label{display:block;font-size:13px;font-weight:700;margin-bottom:5px}
+  input{width:100%;padding:10px 12px;border:1px solid #d7dce3;border-radius:8px;font:inherit;font-size:14px;background:#fff}
+  .field{margin-bottom:12px}
+  button{font:inherit;cursor:pointer;border:none;border-radius:8px;padding:10px 14px;font-weight:700;font-size:13.5px}
+  .b-dark{background:var(--dark);color:#fff} .b-green{background:var(--green);color:#fff}
+  .b-blue{background:var(--blue);color:#fff} .b-light{background:#e9ecf1;color:var(--text)}
+  .b-red{background:#fde3e6;color:var(--red)}
+  .err{color:var(--red);font-size:13px;margin:8px 0;min-height:18px}
+  .login{max-width:380px;margin:12vh auto}
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .stat{background:#f6f8fb;border-radius:10px;padding:12px;text-align:center}
+  .stat b{display:block;font-size:20px;margin-bottom:2px}
+  .stat span{font-size:12px;color:var(--muted)}
+  .tabs{display:flex;gap:8px;margin-bottom:12px}
+  .tabs button{flex:1;background:#e9ecf1;color:var(--text)}
+  .tabs button.on{background:var(--dark);color:#fff}
+  .ord{border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px;background:#fff}
+  .ord .row{display:flex;justify-content:space-between;gap:8px;font-size:14px;margin-bottom:6px}
+  .ord .muted{color:var(--muted);font-size:13px}
+  .pill{padding:3px 10px;border-radius:99px;font-size:12px;font-weight:700}
+  .p-assigned{background:#fff1d6;color:var(--amber)} .p-out{background:#dbe8ff;color:var(--blue)}
+  .p-delivered{background:#dcf5e3;color:var(--green)} .p-failed{background:#fde3e6;color:var(--red)}
+  .cash{background:#fff7e0;border:1px solid #f1dc9b;border-radius:8px;padding:8px 10px;font-weight:800;margin:8px 0}
+  .actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  .actions a{text-decoration:none;display:inline-block}
+  .loc{font-size:13px;padding:9px 12px;border-radius:8px;margin-bottom:12px}
+  .loc.on{background:#dcf5e3;color:var(--green)} .loc.off{background:#fde3e6;color:var(--red)}
+  #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--dark);color:#fff;padding:10px 20px;border-radius:8px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:99}
+  #toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<div class="wrap" id="login-view">
+  <div class="card login">
+    <h1 style="margin-bottom:16px">دخول موظف التوصيل</h1>
+    <div class="field"><label>الإيميل</label><input id="l-email" type="email" dir="ltr" autocomplete="username"></div>
+    <div class="field"><label>كلمة المرور</label><input id="l-pass" type="password" dir="ltr" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <div class="err" id="l-err"></div>
+    <button class="b-dark" style="width:100%" onclick="doLogin()">دخول</button>
+  </div>
+</div>
+
+<div class="wrap hidden" id="app-view">
+  <div class="top">
+    <h1>أهلاً <span id="who"></span> 👋</h1>
+    <button class="b-light" onclick="doLogout()">خروج</button>
+  </div>
+
+  <div class="loc off hidden" id="loc-banner"></div>
+
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <h2 style="margin:0">إحصائياتي</h2>
+      <input type="month" id="month" style="width:auto" onchange="render()">
+    </div>
+    <div class="stats">
+      <div class="stat"><b id="st-count">0</b><span>فواتير اتسلّمت</span></div>
+      <div class="stat"><b id="st-total">0</b><span>إجمالي قيمة الفواتير (ج.م)</span></div>
+      <div class="stat"><b id="st-cash">0</b><span>اللي حصّلته كاش (ج.م)</span></div>
+      <div class="stat"><b id="st-pending">0</b><span>طلبات لسه معايا</span></div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button id="tab-active" class="on" onclick="setTab('active')">معايا دلوقتي</button>
+    <button id="tab-done" onclick="setTab('done')">اللي خلصته</button>
+  </div>
+  <div id="list"></div>
+</div>
+<div id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="assets/firebase-init.js"></script>
+<script>
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  let me = null, myOrders = {}, listening = false, tab = "active";
+  let watchId = null, lastSent = 0, wakeLock = null;
+
+  function toast(m){ const t=$("toast"); t.textContent=m; t.classList.add("show"); clearTimeout(window._t); window._t=setTimeout(()=>t.classList.remove("show"),2300); }
+  function showErr(e){ console.error(e); toast("تعذر تنفيذ العملية (" + (e && e.code ? e.code : "خطأ") + ")"); }
+  function nowMonth(){ const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"); }
+  $("month").value = nowMonth();
+
+  /* ---------- الدخول ---------- */
+  function doLogin(){
+    const e=$("l-email").value.trim(), p=$("l-pass").value; $("l-err").textContent="";
+    if(!e||!p){ $("l-err").textContent="اكتب الإيميل وكلمة المرور"; return; }
+    firebase.auth().signInWithEmailAndPassword(e,p).catch(()=>{ $("l-err").textContent="الإيميل أو كلمة المرور غير صحيحة"; });
+  }
+  function doLogout(){ stopWatch(); firebase.auth().signOut(); }
+
+  firebase.auth().onAuthStateChanged(async user => {
+    if(!user){ $("login-view").classList.remove("hidden"); $("app-view").classList.add("hidden"); return; }
+    let snap = null;
+    try { snap = await db.ref("couriers/"+user.uid).once("value"); } catch(e) {}
+    if(!snap || !snap.exists() || snap.val().active === false){
+      $("l-err").textContent = "الحساب ده غير مصرح له بالدخول. كلّم المدير.";
+      $("login-view").classList.remove("hidden"); $("app-view").classList.add("hidden");
+      firebase.auth().signOut(); return;
+    }
+    me = { uid:user.uid, ...snap.val() };
+    $("who").textContent = me.name || "";
+    $("login-view").classList.add("hidden"); $("app-view").classList.remove("hidden");
+    if(!listening){
+      listening = true;
+      db.ref("courier_orders/"+me.uid).on("value", s => { myOrders = s.val() || {}; render(); syncWatch(); }, showErr);
+    }
+  });
+
+  /* ---------- العرض ---------- */
+  function setTab(t){ tab=t; $("tab-active").classList.toggle("on",t==="active"); $("tab-done").classList.toggle("on",t==="done"); render(); }
+  function monthRange(){ const [y,m]=($("month").value||nowMonth()).split("-").map(Number); return [new Date(y,m-1,1).getTime(), new Date(y,m,1).getTime()]; }
+  const LABEL = {assigned:"لسه ماخرجتش", out:"في الطريق للعميل", delivered:"تم التسليم", failed:"تعذر التسليم"};
+  function trackUrl(oid){ return new URL("track.html?o="+oid, location.href).href; }
+  function waLink(phone, text){
+    let d = String(phone||"").replace(/\D/g,""); if(d.startsWith("00")) d=d.slice(2); if(d.startsWith("0")) d="20"+d.slice(1);
+    return "https://wa.me/"+d+"?text="+encodeURIComponent(text);
+  }
+  function mapsLink(addr){ return "https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(addr||""); }
+
+  function render(){
+    if(!me) return;
+    const list = Object.entries(myOrders).map(([id,o]) => ({id,...o}));
+    const [from,to] = monthRange();
+    const delivered = list.filter(o => o.status==="delivered" && o.deliveredAt>=from && o.deliveredAt<to);
+    $("st-count").textContent = delivered.length;
+    $("st-total").textContent = delivered.reduce((s,o)=>s+(o.total||0),0).toFixed(0);
+    $("st-cash").textContent = delivered.reduce((s,o)=>s+(o.remaining||0),0).toFixed(0);
+    $("st-pending").textContent = list.filter(o => o.status==="assigned"||o.status==="out").length;
+
+    let rows;
+    if(tab==="active") rows = list.filter(o=>o.status==="assigned"||o.status==="out").sort((a,b)=>(a.assignedAt||0)-(b.assignedAt||0));
+    else rows = list.filter(o => (o.status==="delivered"||o.status==="failed") && (o.deliveredAt||o.failedAt||0)>=from && (o.deliveredAt||o.failedAt||0)<to)
+                    .sort((a,b)=>((b.deliveredAt||b.failedAt)||0)-((a.deliveredAt||a.failedAt)||0));
+    $("list").innerHTML = rows.length ? rows.map(card).join("") : `<div class="card" style="text-align:center;color:var(--muted)">${tab==="active"?"مفيش طلبات معاك دلوقتي":"مفيش طلبات في الشهر ده"}</div>`;
+  }
+
+  function card(o){
+    const st = o.status;
+    const msg = `أهلاً ${o.customerName||""}، أنا ${me.name||"المندوب"} مندوب SphinxPack. تقدر تتابع طلبك رقم ${o.orderNumber||""} ومكاني لحظة بلحظة من هنا: ${trackUrl(o.id)}`;
+    let actions = "";
+    if(st==="assigned") actions = `<button class="b-green" onclick="startDelivery('${o.id}')">🚚 بدء التوصيل</button>`;
+    if(st==="out") actions = `
+      <button class="b-green" onclick="finish('${o.id}','delivered')">✅ تم التسليم</button>
+      <button class="b-red" onclick="finish('${o.id}','failed')">تعذر التسليم</button>
+      <a href="${waLink(o.customerPhone,msg)}" target="_blank"><button class="b-blue">📍 ابعت لينك التتبع للعميل</button></a>`;
+    const when = o.deliveredAt || o.failedAt;
+    return `<div class="ord">
+      <div class="row"><strong>طلب #${esc(o.orderNumber||"—")}</strong><span class="pill p-${st}">${LABEL[st]||st}</span></div>
+      <div class="row"><span>👤 ${esc(o.customerName)}</span><a href="tel:${esc(o.customerPhone)}" dir="ltr">${esc(o.customerPhone)}</a></div>
+      <div class="muted">📍 ${esc(o.address||"بدون عنوان")}</div>
+      ${o.notes?`<div class="muted">📝 ${esc(o.notes)}</div>`:""}
+      <div class="muted" style="margin-top:6px;white-space:pre-line">${esc(o.itemsText||"")}</div>
+      <div class="row" style="margin-top:8px"><span>إجمالي الفاتورة</span><strong>${(o.total||0).toFixed(2)} ج.م</strong></div>
+      <div class="cash">${(o.remaining||0)>0 ? `المطلوب تحصيله من العميل: ${(o.remaining||0).toFixed(2)} ج.م` : "مدفوع بالكامل — مفيش تحصيل"}</div>
+      ${when?`<div class="muted">${new Date(when).toLocaleString("ar-EG")}</div>`:""}
+      <div class="actions">
+        ${actions}
+        <a href="tel:${esc(o.customerPhone)}"><button class="b-light">📞 اتصال</button></a>
+        <a href="${mapsLink(o.address)}" target="_blank"><button class="b-light">🗺️ الخريطة</button></a>
+      </div></div>`;
+  }
+
+  /* ---------- حالة الطلب ---------- */
+  function startDelivery(oid){
+    if(!navigator.geolocation){ toast("المتصفح مش بيدعم تحديد الموقع"); return; }
+    const t = Date.now();
+    db.ref("courier_orders/"+me.uid+"/"+oid).update({ status:"out", startedAt:t })
+      .then(() => db.ref("tracking/"+oid).set({ status:"out", courierName:me.name||"", ts:t }))
+      .then(() => toast("بدأ التوصيل — وافق على صلاحية الموقع لو ظهرت"))
+      .catch(showErr);
+  }
+  function finish(oid, status){
+    if(status==="failed" && !confirm("متأكد إن التسليم تعذّر؟")) return;
+    if(status==="delivered" && !confirm("تأكيد تسليم الطلب للعميل؟")) return;
+    const t = Date.now();
+    const upd = { status }; upd[status==="delivered" ? "deliveredAt" : "failedAt"] = t;
+    db.ref("courier_orders/"+me.uid+"/"+oid).update(upd)
+      .then(() => db.ref("tracking/"+oid).update({ status: status==="delivered" ? "delivered" : "ended", ts:t }))
+      .then(() => toast(status==="delivered" ? "تم تسجيل التسليم ✅" : "تم تسجيل تعذر التسليم"))
+      .catch(showErr);
+  }
+
+  /* ---------- مشاركة الموقع (شغالة طول ما فيه طلب "في الطريق") ---------- */
+  function outIds(){ return Object.keys(myOrders).filter(id => myOrders[id].status==="out"); }
+  function banner(on, msg){ const b=$("loc-banner"); b.classList.remove("hidden"); b.className="loc "+(on?"on":"off"); b.textContent=msg; }
+  function syncWatch(){
+    const ids = outIds();
+    if(ids.length && watchId===null) startWatch();
+    if(!ids.length && watchId!==null) stopWatch();
+  }
+  function startWatch(){
+    if(!navigator.geolocation){ banner(false,"المتصفح مش بيدعم تحديد الموقع"); return; }
+    watchId = navigator.geolocation.watchPosition(pos => {
+      const now = Date.now(); if(now-lastSent < 7000) return; lastSent = now;
+      const upd = {};
+      outIds().forEach(id => {
+        upd["tracking/"+id+"/lat"] = pos.coords.latitude;
+        upd["tracking/"+id+"/lng"] = pos.coords.longitude;
+        upd["tracking/"+id+"/acc"] = Math.round(pos.coords.accuracy||0);
+        upd["tracking/"+id+"/ts"] = now;
+      });
+      if(Object.keys(upd).length) db.ref().update(upd).catch(showErr);
+      banner(true,"📍 موقعك بيتشارك مع العميل دلوقتي — سيب الصفحة مفتوحة");
+    }, err => {
+      banner(false, err.code===1 ? "صلاحية الموقع مرفوضة — فعّلها من إعدادات المتصفح عشان العميل يتابعك" : "تعذر تحديد موقعك، تأكد إن الـ GPS شغال");
+    }, { enableHighAccuracy:true, maximumAge:5000, timeout:20000 });
+    if(navigator.wakeLock){ navigator.wakeLock.request("screen").then(l => wakeLock=l).catch(()=>{}); }
+  }
+  function stopWatch(){
+    if(watchId!==null){ navigator.geolocation.clearWatch(watchId); watchId=null; }
+    if(wakeLock){ wakeLock.release().catch(()=>{}); wakeLock=null; }
+    $("loc-banner").classList.add("hidden");
+  }
+  document.addEventListener("visibilitychange", () => {
+    if(document.visibilityState==="visible" && watchId!==null && navigator.wakeLock && !wakeLock){
+      navigator.wakeLock.request("screen").then(l => wakeLock=l).catch(()=>{});
+    }
+  });
+</script>
+</body>
+</html>
