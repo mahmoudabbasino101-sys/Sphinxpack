@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>إدارة المنتجات — SphinxPack</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#eef1f5;--card:#fff;--border:#e4e7ec;--text:#1f2430;--muted:#6b7280;--blue:#2f6fed;--green:#1e9e4e;--red:#e0455a;--dark:#151d2e}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--text)}
+  .hidden{display:none!important}
+  .wrap{max-width:900px;margin:0 auto;padding:16px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:16px}
+  h1{font-size:20px;margin:0}
+  h2{font-size:16px;margin:0 0 14px}
+  .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+  label{display:block;font-size:13px;font-weight:700;margin-bottom:5px}
+  input,select,textarea{width:100%;padding:10px 12px;border:1px solid #d7dce3;border-radius:8px;font:inherit;font-size:14px;background:#fff}
+  textarea{min-height:70px;resize:vertical}
+  .field{margin-bottom:12px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:560px){.grid{grid-template-columns:1fr}}
+  button{font:inherit;cursor:pointer;border:none;border-radius:8px;padding:11px 18px;font-weight:700;font-size:14px}
+  .btn-dark{background:var(--dark);color:#fff}
+  .btn-light{background:#e9ecf1;color:var(--text)}
+  .btn-red{background:transparent;color:var(--red);padding:6px 10px}
+  .err{color:var(--red);font-size:13px;margin:8px 0;min-height:18px}
+  .login{max-width:380px;margin:12vh auto}
+  .preview{width:70px;height:70px;border:1px dashed #ccd;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--muted);overflow:hidden;margin-top:8px}
+  .preview img{width:100%;height:100%;object-fit:cover}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th,td{padding:9px 6px;text-align:right;border-bottom:1px solid var(--border)}
+  th{color:var(--muted);font-weight:500}
+  .thumb{width:42px;height:42px;border-radius:6px;overflow:hidden;background:#f1f3f6}
+  .thumb img{width:100%;height:100%;object-fit:cover}
+  .pill{padding:3px 10px;border-radius:99px;font-size:12px}
+  .ok{background:#dcf5e3;color:var(--green)} .low{background:#fde3e6;color:var(--red)}
+  .scroll{overflow-x:auto}
+  #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--dark);color:#fff;padding:10px 20px;border-radius:8px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:99}
+  #toast.show{opacity:1}
+  .banner{background:#fde3e6;color:var(--red);padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:12px}
+</style>
+</head>
+<body>
+
+<!-- تسجيل الدخول -->
+<div class="wrap" id="login-view">
+  <div class="card login">
+    <h1 style="margin-bottom:16px">دخول الموظفين</h1>
+    <div class="field"><label>الإيميل</label><input id="l-email" type="email" autocomplete="username" dir="ltr"></div>
+    <div class="field"><label>كلمة المرور</label><input id="l-pass" type="password" autocomplete="current-password" dir="ltr" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <div class="err" id="l-err"></div>
+    <button class="btn-dark" style="width:100%" onclick="doLogin()">دخول</button>
+  </div>
+</div>
+
+<!-- إدارة المنتجات -->
+<div class="wrap hidden" id="app-view">
+  <div class="top">
+    <h1>إدارة المنتجات</h1>
+    <button class="btn-light" onclick="doLogout()">خروج</button>
+  </div>
+  <div class="banner hidden" id="fb-err"></div>
+
+  <div class="card">
+    <h2 id="form-title">إضافة منتج جديد</h2>
+    <div class="grid">
+      <div class="field"><label>اسم المنتج</label><input id="p-name" type="text"></div>
+      <div class="field"><label>القسم</label><select id="p-cat"></select></div>
+      <div class="field"><label>السعر للكرتونة (ج.م)</label><input id="p-price" type="number" min="0" step="0.01"></div>
+      <div class="field"><label>الكمية بالمخزن</label><input id="p-qty" type="number" min="0"></div>
+      <div class="field"><label>عدد القطع في الكرتونة (اختياري)</label><input id="p-pieces" type="number" min="1"></div>
+      <div class="field"><label>المقاس/الحجم (اختياري)</label><input id="p-size" type="text"></div>
+      <div class="field"><label>الباركود / SKU (اختياري)</label><input id="p-barcode" type="text"></div>
+    </div>
+    <div class="field"><label>الوصف (اختياري)</label><textarea id="p-desc"></textarea></div>
+    <div class="field">
+      <label>صورة المنتج</label>
+      <input type="file" id="p-image" accept="image/*">
+      <div class="preview" id="img-preview">صورة</div>
+    </div>
+    <button class="btn-dark" id="save-btn" onclick="saveProduct()">حفظ المنتج</button>
+    <button class="btn-light hidden" id="cancel-btn" onclick="resetForm()">إلغاء التعديل</button>
+  </div>
+
+  <div class="card">
+    <h2>المنتجات الحالية <span id="count" style="color:var(--muted);font-weight:400"></span></h2>
+    <div class="field"><input id="search" type="text" placeholder="ابحث عن منتج..." oninput="renderTable()"></div>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>صورة</th><th>الاسم</th><th>السعر</th><th>المخزون</th><th>القسم</th><th>الحالة</th><th></th></tr></thead>
+        <tbody id="tbody"><tr><td colspan="7">جاري التحميل...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="assets/firebase-init.js"></script>
+<script src="assets/shop.js"></script>
+<script src="assets/admin.js"></script>
+<script>
+  /* الصفحة دي للموظفين: إضافة وتعديل المنتجات فقط — من غير أسعار الجملة/الشحن ومن غير أي بيانات تانية */
+  let allProducts = [];
+  let pendingImage = "";
+  let editing = null;
+  let started = false;
+
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+  function toast(msg) {
+    const t = $("toast"); t.textContent = msg; t.classList.add("show");
+    clearTimeout(window._tt); window._tt = setTimeout(() => t.classList.remove("show"), 2200);
+  }
+  function showErr(err) {
+    console.error(err);
+    const b = $("fb-err"); b.classList.remove("hidden");
+    b.textContent = "تعذر تنفيذ العملية (" + (err && err.code ? err.code : "خطأ") + ") — لو الحساب مش مسموح له بالكتابة كلّم المدير.";
+  }
+
+  /* ---------- تسجيل الدخول ---------- */
+  function doLogin() {
+    const email = $("l-email").value.trim(), pass = $("l-pass").value;
+    $("l-err").textContent = "";
+    if (!email || !pass) { $("l-err").textContent = "اكتب الإيميل وكلمة المرور"; return; }
+    firebase.auth().signInWithEmailAndPassword(email, pass)
+      .catch(() => { $("l-err").textContent = "الإيميل أو كلمة المرور غير صحيحة"; });
+  }
+  function doLogout() { firebase.auth().signOut(); }
+
+  firebase.auth().onAuthStateChanged(user => {
+    $("login-view").classList.toggle("hidden", !!user);
+    $("app-view").classList.toggle("hidden", !user);
+    if (user && !started) { started = true; startApp(); }
+  });
+
+  /* ---------- تشغيل الصفحة ---------- */
+  function startApp() {
+    initCategories(() => {
+      const cur = $("p-cat").value;
+      $("p-cat").innerHTML = CATEGORIES.map(c => `<option value="${esc(c.slug)}">${esc(c.name)}</option>`).join("");
+      if (cur) $("p-cat").value = cur;
+      renderTable();
+    });
+    loadProducts(null, list => { allProducts = list; renderTable(); });
+  }
+
+  $("p-image").addEventListener("change", async e => {
+    const f = e.target.files[0]; if (!f) return;
+    $("img-preview").textContent = "جاري التجهيز...";
+    try { pendingImage = await compressImage(f); $("img-preview").innerHTML = `<img src="${pendingImage}">`; }
+    catch { $("img-preview").textContent = "تعذر تحميل الصورة"; }
+  });
+
+  /* ---------- جدول المنتجات ---------- */
+  function renderTable() {
+    const q = ($("search").value || "").trim().toLowerCase();
+    const list = allProducts.filter(p => !q || (p.name||"").toLowerCase().includes(q) || (p.barcode||"").toLowerCase().includes(q));
+    $("count").textContent = `(${list.length})`;
+    if (!list.length) { $("tbody").innerHTML = `<tr><td colspan="7">لا يوجد منتجات</td></tr>`; return; }
+    $("tbody").innerHTML = list.map(p => `
+      <tr>
+        <td><div class="thumb">${p.image ? `<img src="${p.image}">` : ""}</div></td>
+        <td>${esc(p.name)}</td>
+        <td>${Number(p.price || 0).toFixed(2)}</td>
+        <td>${p.qty ?? 0}</td>
+        <td>${esc(catName(p.category))}</td>
+        <td><span class="pill ${(p.qty ?? 0) > 0 ? "ok" : "low"}">${(p.qty ?? 0) > 0 ? "متوفر" : "غير متوفر"}</span></td>
+        <td><button class="btn-light" style="padding:6px 12px" onclick="editProduct('${esc(p.category)}','${esc(p.id)}')">تعديل</button></td>
+      </tr>`).join("");
+  }
+
+  /* ---------- إضافة / تعديل ---------- */
+  function resetForm() {
+    ["p-name","p-price","p-qty","p-pieces","p-size","p-barcode","p-desc"].forEach(i => $(i).value = "");
+    $("p-image").value = ""; $("img-preview").textContent = "صورة";
+    $("p-cat").disabled = false;
+    pendingImage = ""; editing = null;
+    $("form-title").textContent = "إضافة منتج جديد";
+    $("save-btn").textContent = "حفظ المنتج";
+    $("cancel-btn").classList.add("hidden");
+  }
+
+  function editProduct(category, id) {
+    const p = allProducts.find(x => x.id === id && x.category === category);
+    if (!p) return;
+    editing = { category, id };
+    $("p-name").value = p.name || "";
+    $("p-cat").value = p.category; $("p-cat").disabled = true; // نقل المنتج بين الأقسام من المدير بس
+    $("p-price").value = p.price ?? "";
+    $("p-qty").value = p.qty ?? 0;
+    $("p-pieces").value = p.piecesPerCarton || "";
+    $("p-size").value = p.size || "";
+    $("p-barcode").value = p.barcode || "";
+    $("p-desc").value = p.description || "";
+    $("img-preview").innerHTML = p.image ? `<img src="${p.image}">` : "صورة";
+    pendingImage = "";
+    $("form-title").textContent = "تعديل منتج";
+    $("save-btn").textContent = "حفظ التعديل";
+    $("cancel-btn").classList.remove("hidden");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function saveProduct() {
+    const name = $("p-name").value.trim();
+    const category = $("p-cat").value;
+    const price = parseFloat($("p-price").value || "0");
+    const qty = parseInt($("p-qty").value || "0");
+    const piecesPerCarton = parseInt($("p-pieces").value || "0") || null;
+    const size = $("p-size").value.trim();
+    const barcode = $("p-barcode").value.trim();
+    const description = $("p-desc").value.trim();
+    if (!name || !price) { toast("اكتب اسم المنتج والسعر على الأقل"); return; }
+
+    $("save-btn").disabled = true;
+    let op;
+    if (editing) {
+      const upd = { name, qty, price, barcode, description, piecesPerCarton, size };
+      if (pendingImage) upd.image = pendingImage;
+      op = updateProduct(editing.category, editing.id, upd);
+    } else {
+      op = addProduct({ name, category, qty, price, barcode, description, piecesPerCarton, size, image: pendingImage });
+    }
+    op.then(() => { toast(editing ? "تم تعديل المنتج" : "تم إضافة المنتج"); resetForm(); $("fb-err").classList.add("hidden"); })
+      .catch(showErr)
+      .finally(() => { $("save-btn").disabled = false; });
+  }
+</script>
+</body>
+</html>
