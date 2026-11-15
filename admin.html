@@ -619,7 +619,8 @@ function doLogin() {
   doLoginWithPassword(pass).catch(() => { errEl.textContent = "كلمة المرور غير صحيحة"; });
 }
 firebase.auth().onAuthStateChanged(user => {
-  if (user) showDashboard(); else showLoginScreen();
+  /* لوحة الأدمن للأدمن بس — حساب الموظف (المسجّل من staff.html) مايفتحش اللوحة */
+  if (user && user.email === ADMIN_EMAIL) showDashboard(); else showLoginScreen();
 });
 
 /* ---------------- تنقل السايدبار ---------------- */
