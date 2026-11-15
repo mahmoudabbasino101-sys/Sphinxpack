@@ -42,6 +42,10 @@
         <input type="text" id="c-address" placeholder="المحافظة / المنطقة">
       </div>
       <div class="field">
+        <button type="button" id="loc-btn" style="width:100%;padding:11px;border:1.5px dashed #9aa5b1;background:#fff;border-radius:8px;cursor:pointer;font:inherit;font-weight:700">📍 حدد موقعي على الخريطة (اختياري)</button>
+        <div id="loc-status" style="font-size:12.5px;margin-top:6px;color:#6b7280">بيساعد المندوب يوصلّك بسهولة وبسرعة.</div>
+      </div>
+      <div class="field">
         <label>ملاحظات (اختياري)</label>
         <textarea id="c-notes" rows="2" placeholder="أي تفاصيل إضافية"></textarea>
       </div>
@@ -168,6 +172,22 @@
   }
   document.getElementById("pay-select").addEventListener("change", updatePaymentUI);
 
+  /* تحديد موقع العميل (اختياري) — بيتبعت مع الأوردر عشان المندوب يفتحه على الخريطة */
+  window._custLoc = null;
+  document.getElementById("loc-btn").addEventListener("click", () => {
+    const st = document.getElementById("loc-status");
+    if (!navigator.geolocation) { st.textContent = "المتصفح مش بيدعم تحديد الموقع، اكتب العنوان بالتفصيل."; return; }
+    st.textContent = "جاري تحديد موقعك... وافق على الصلاحية لو ظهرت.";
+    navigator.geolocation.getCurrentPosition(pos => {
+      window._custLoc = { lat: pos.coords.latitude, lng: pos.coords.longitude, acc: Math.round(pos.coords.accuracy || 0) };
+      st.style.color = "#1e9e4e";
+      st.textContent = "✓ تم تحديد موقعك (دقة حوالي " + window._custLoc.acc + " متر). اضغط تاني لو عايز تحدّثه.";
+    }, err => {
+      st.style.color = "#e0455a";
+      st.textContent = err.code === 1 ? "صلاحية الموقع مرفوضة. فعّلها من إعدادات المتصفح أو اكتب العنوان بالتفصيل." : "تعذر تحديد موقعك، تأكد إن الـ GPS شغال أو اكتب العنوان.";
+    }, { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 });
+  });
+
   document.getElementById("send-btn").addEventListener("click", () => {
     const name = document.getElementById("c-name").value.trim();
     const phone = document.getElementById("c-phone").value.trim();
@@ -181,7 +201,7 @@
     errEl.style.display = "none";
     statusEl.style.display = "none";
 
-    const customer = { name, phone, address, notes };
+    const customer = { name, phone, address, notes, location: window._custLoc || null };
     const method = document.getElementById("pay-select").value;
     const cart = getCart();
     const total = cartTotal(cart);
