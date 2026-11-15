@@ -92,6 +92,7 @@
   initSettings(() => initCategories(function () {
     mountHeader(null);
     mountFooter();
+    if (typeof renderCartPage === "function") renderCartPage(); // إعادة رسم السلة بعد تحميل الأقسام عشان يظهر اسم القسم بدل الكود
   }));
 
   function renderCartPage() {
