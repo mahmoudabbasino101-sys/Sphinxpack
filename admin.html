@@ -1388,7 +1388,16 @@ function updateOrderStats() {
 window.handleConfirmOrder = function (id) { confirmOrderDelivered(id).then(() => showToast("تم تأكيد استلام الأوردر")).catch(showFbError); };
 window.handleDeleteOrder = function (id) {
   if (!confirm("متأكد من حذف الأوردر ده نهائيًا؟")) return;
-  db.ref("orders/" + id).remove().then(() => showToast("تم حذف الأوردر")).catch(showFbError);
+  /* حذف الأوردر + نسخته عند موظف التوصيل + بيانات التتبع في عملية واحدة */
+  const up = {};
+  up["orders/" + id] = null;
+  up["tracking/" + id] = null;
+  Object.keys(courierOrdersMap || {}).forEach(uid => {
+    if (courierOrdersMap[uid] && courierOrdersMap[uid][id]) up["courier_orders/" + uid + "/" + id] = null;
+  });
+  const o = allOrders.find(x => x.id === id);
+  if (o && o.courierUid) up["courier_orders/" + o.courierUid + "/" + id] = null;
+  db.ref().update(up).then(() => showToast("تم حذف الأوردر")).catch(showFbError);
 };
 window.editProduct = editProduct;
 window.removeProduct = removeProduct;
