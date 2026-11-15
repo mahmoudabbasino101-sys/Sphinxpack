@@ -14,3 +14,9 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
+
+/* جلسة الدخول (أدمن/موظف) بتتمسح أول ما التبويب أو المتصفح يتقفل،
+   فالمرة الجاية لازم يتكتب الباسورد تاني. (صفحات المتجر مش بتسجل دخول فمفيش تأثير عليها) */
+if (typeof firebase.auth === "function") {
+  firebase.auth().setPersistence(firebase.auth.Auth.Persistence.SESSION).catch(function (e) { console.error(e); });
+}
