@@ -137,7 +137,10 @@
     let d = String(phone||"").replace(/\D/g,""); if(d.startsWith("00")) d=d.slice(2); if(d.startsWith("0")) d="20"+d.slice(1);
     return "https://wa.me/"+d+"?text="+encodeURIComponent(text);
   }
-  function mapsLink(addr){ return "https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(addr||""); }
+  function mapsLink(o){
+    if (o.location && o.location.lat != null) return "https://www.google.com/maps/dir/?api=1&destination="+o.location.lat+","+o.location.lng;
+    return "https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(o.address||"");
+  }
 
   function render(){
     if(!me) return;
@@ -169,7 +172,7 @@
     return `<div class="ord">
       <div class="row"><strong>طلب #${esc(o.orderNumber||"—")}</strong><span class="pill p-${st}">${LABEL[st]||st}</span></div>
       <div class="row"><span>👤 ${esc(o.customerName)}</span><a href="tel:${esc(o.customerPhone)}" dir="ltr">${esc(o.customerPhone)}</a></div>
-      <div class="muted">📍 ${esc(o.address||"بدون عنوان")}</div>
+      <div class="muted">📍 ${esc(o.address||"بدون عنوان")}${o.location ? " — <strong style='color:var(--green)'>الموقع محدد ✓</strong>" : ""}</div>
       ${o.notes?`<div class="muted">📝 ${esc(o.notes)}</div>`:""}
       <div class="muted" style="margin-top:6px;white-space:pre-line">${esc(o.itemsText||"")}</div>
       <div class="row" style="margin-top:8px"><span>إجمالي الفاتورة</span><strong>${(o.total||0).toFixed(2)} ج.م</strong></div>
@@ -178,7 +181,7 @@
       <div class="actions">
         ${actions}
         <a href="tel:${esc(o.customerPhone)}"><button class="b-light">📞 اتصال</button></a>
-        <a href="${mapsLink(o.address)}" target="_blank"><button class="b-light">🗺️ الخريطة</button></a>
+        <a href="${mapsLink(o)}" target="_blank"><button class="b-light">${o.location ? "🧭 اتجاهات لموقع العميل" : "🗺️ الخريطة"}</button></a>
       </div></div>`;
   }
 
