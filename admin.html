@@ -799,7 +799,7 @@ function loadCouriers() {
   if (_courierListening) return;
   _courierListening = true;
   db.ref("couriers").on("value", s => { couriersMap = s.val() || {}; renderCouriers(); refreshCourierBlock(); }, showFbError);
-  db.ref("courier_orders").on("value", s => { courierOrdersMap = s.val() || {}; renderCouriers(); refreshCourierBlock(); }, showFbError);
+  db.ref("courier_orders").on("value", s => { courierOrdersMap = s.val() || {}; renderCouriers(); refreshCourierBlock(); cleanOrphanCourierOrders(); }, showFbError);
 }
 function renderCouriers() {
   const tb = document.getElementById("couriers-tbody"); if (!tb) return;
@@ -818,8 +818,41 @@ function renderCouriers() {
     return `<tr>
       <td>${_escC(c.name)}<div style="font-size:11.5px;color:var(--text-muted)" dir="ltr">${_escC(c.email)}</div></td>
       <td><strong>${done.length}</strong></td><td>${total.toFixed(0)} ج.م</td><td>${cash.toFixed(0)} ج.م</td><td>${pend}</td>
-      <td><button class="btn-ghost" onclick="toggleCourier('${uid}')">${c.active === false ? "تفعيل" : "إيقاف"}</button></td></tr>`;
+      <td style="white-space:nowrap"><button class="btn-ghost" onclick="toggleCourier('${uid}')">${c.active === false ? "تفعيل" : "إيقاف"}</button>
+        <button class="btn-ghost" style="color:var(--red)" onclick="deleteCourier('${uid}')">حذف</button></td></tr>`;
   }).join("");
+}
+
+
+function deleteCourier(uid) {
+  const c = couriersMap[uid]; if (!c) return;
+  if (!confirm("حذف المندوب \"" + (c.name || c.email) + "\" نهائيًا؟\n\n- مش هيقدر يدخل تاني\n- بيانات تسليماته هتتمسح من التقرير\n- الطلبات اللي لسه معاه هترجع من غير مندوب")) return;
+  const up = {};
+  up["couriers/" + uid] = null;
+  Object.entries(courierOrdersMap[uid] || {}).forEach(([oid, co]) => {
+    if (co.status === "assigned" || co.status === "out") {
+      up["orders/" + oid + "/courierUid"] = null;
+      up["orders/" + oid + "/courierName"] = null;
+      up["orders/" + oid + "/courierAssignedAt"] = null;
+      up["tracking/" + oid] = null;
+    }
+  });
+  up["courier_orders/" + uid] = null;
+  db.ref().update(up).then(() => showToast("تم حذف المندوب")).catch(showFbError);
+}
+
+/* تنظيف تلقائي: أي أوردر عند مندوب وهو مش موجود في الأوردرات (اتحذف) بيتمسح من عنده */
+let _cleaningOrphans = false;
+function cleanOrphanCourierOrders() {
+  if (!ordersInitialized || _cleaningOrphans) return;
+  const ids = new Set(allOrders.map(o => o.id));
+  const up = {};
+  Object.entries(courierOrdersMap || {}).forEach(([uid, m]) => Object.keys(m || {}).forEach(oid => {
+    if (!ids.has(oid)) { up["courier_orders/" + uid + "/" + oid] = null; up["tracking/" + oid] = null; }
+  }));
+  if (!Object.keys(up).length) return;
+  _cleaningOrphans = true;
+  db.ref().update(up).catch(e => console.error(e)).finally(() => { _cleaningOrphans = false; });
 }
 
 function courierBlockHtml(o) {
@@ -1461,6 +1494,7 @@ function initDashboard() {
     Object.keys(val).forEach(id => seenOrderIds.add(id));
     allOrders = Object.entries(val).map(([id,o]) => ({ id, ...o }));
     updateOrderStats(); renderOrdersTable(); ordersInitialized = true;
+    if (typeof cleanOrphanCourierOrders === "function") cleanOrphanCourierOrders();
     db.ref("orders").on("value", snap2 => {
       const val2 = snap2.val() || {};
       const newList = Object.entries(val2).map(([id,o]) => ({ id, ...o }));
@@ -1470,6 +1504,7 @@ function initDashboard() {
         });
       }
       allOrders = newList; updateOrderStats(); renderOrdersTable();
+      if (typeof cleanOrphanCourierOrders === "function") cleanOrphanCourierOrders();
     }, showFbError);
   }).catch(showFbError);
 
