@@ -289,6 +289,7 @@ function createPaymobPayment(orderInfo, amount, customer) {
       orderNumber: orderInfo.orderNumber,
       customerName: customer.name,
       customerPhone: customer.phone,
+      returnUrl: new URL("thank-you.html", location.href).href, // الرجوع لصفحة الشكر بعد الدفع
     }),
   }).then(r => r.json());
 }
