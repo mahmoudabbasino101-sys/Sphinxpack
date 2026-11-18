@@ -280,6 +280,7 @@ function pushPendingPayment(cart, customer, extra) {
 
 /* طلب رابط دفع Paymob من السيرفر الخاص بينا (المفاتيح السرية مش هنا) */
 function createPaymobPayment(orderInfo, amount, customer) {
+  try { localStorage.setItem("sp_pending_id", orderInfo.id); } catch (e) {} // عشان صفحة الشكر تعرف الطلب لو Paymob ما رجّعش رقمه
   return fetch(PAYMENT_SERVER_URL + "/api/create-payment", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
