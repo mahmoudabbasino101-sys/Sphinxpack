@@ -348,16 +348,22 @@
             <input type="text" id="order-search" placeholder="ابحث برقم الأوردر، اسم العميل، أو رقم الهاتف...">
           </div>
         </div>
-        <div class="card" id="pending-card" style="display:none;border:1.5px solid #f1dc9b;background:#fffaf0">
-          <h2 style="margin-bottom:6px">💳 طلبات دفع Paymob لسه معلّقة <span id="pending-count"></span></h2>
-          <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px">
-            دي طلبات العميل بدأ فيها الدفع ومفيش أوردر اتعمل لها. الطلب الطبيعي بيتحول لأوردر مدفوع لوحده بعد نجاح الدفع، وبيختفي من هنا.
-            لو اتأكدت من <strong>لوحة Paymob ← Transactions</strong> إن المعاملة <strong>Successful</strong>، دوس "تأكيد الدفع". ولو العميل ما دفعش اتجاهله أو احذفه.
-          </p>
-          <div style="overflow-x:auto"><table>
-            <thead><tr><th>العميل</th><th>المنتجات</th><th>المطلوب دفعه</th><th>النوع</th><th>الوقت</th><th></th></tr></thead>
-            <tbody id="pending-tbody"></tbody>
-          </table></div>
+        <div class="card" id="pending-card" style="display:none;border:1.5px solid #f1dc9b;background:#fffaf0;padding:0">
+          <div onclick="togglePending()" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;padding:14px 16px">
+            <strong>💳 طلبات دفع Paymob لسه معلّقة <span id="pending-count"></span></strong>
+            <span id="pending-arrow" style="font-size:14px;transition:transform .2s">▼</span>
+          </div>
+          <div id="pending-body" style="display:none;padding:0 16px 16px">
+            <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px">
+              دي طلبات العميل بدأ فيها الدفع ومفيش أوردر اتعمل لها. لو اتأكدت من <strong>Paymob ← Transactions</strong> إن المعاملة <strong>Successful</strong>، دوس "تأكيد الدفع". ولو العميل ما دفعش احذفها.
+            </p>
+            <input type="text" id="pending-search" placeholder="🔍 ابحث بالاسم أو رقم الهاتف..." oninput="renderPending()"
+              style="width:100%;padding:10px 12px;border:1px solid #d7dce3;border-radius:8px;font:inherit;font-size:14px;margin-bottom:12px;background:#fff">
+            <div style="max-height:60vh;overflow:auto"><table>
+              <thead><tr><th>العميل</th><th>المنتجات</th><th>المطلوب دفعه</th><th>النوع</th><th>الوقت</th><th></th></tr></thead>
+              <tbody id="pending-tbody"></tbody>
+            </table></div>
+          </div>
         </div>
         <div class="subtabs">
           <button class="active" data-sub="new">جديدة <span id="badge-new"></span></button>
@@ -875,12 +881,24 @@ function loadPendingPayments() {
   _pendingListening = true;
   db.ref("pending_payments").on("value", snap => { pendingMap = snap.val() || {}; renderPending(); }, err => console.error(err));
 }
+function togglePending() {
+  const b = document.getElementById("pending-body");
+  const open = b.style.display === "none";
+  b.style.display = open ? "block" : "none";
+  document.getElementById("pending-arrow").style.transform = open ? "rotate(180deg)" : "none";
+}
+const _digits = t => String(t || "").replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(/\D/g, "");
 function renderPending() {
   const card = document.getElementById("pending-card"); if (!card) return;
-  const rows = Object.entries(pendingMap).filter(([id, p]) => p && p.customerName !== undefined)
+  const all = Object.entries(pendingMap).filter(([id, p]) => p && p.customerName !== undefined)
     .sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0));
-  card.style.display = rows.length ? "block" : "none";
-  document.getElementById("pending-count").textContent = rows.length ? "(" + rows.length + ")" : "";
+  const q = (document.getElementById("pending-search").value || "").trim().toLowerCase();
+  const qd = _digits(q);
+  const rows = !q ? all : all.filter(([id, p]) =>
+    String(p.customerName || "").toLowerCase().includes(q) || (qd && _digits(p.customerPhone).includes(qd)));
+  card.style.display = all.length ? "block" : "none";
+  document.getElementById("pending-count").textContent = all.length ? "(" + (q ? rows.length + " من " : "") + all.length + ")" : "";
+  if (!rows.length) { document.getElementById("pending-tbody").innerHTML = '<tr class="empty-row"><td colspan="6">مفيش نتائج</td></tr>'; return; }
   document.getElementById("pending-tbody").innerHTML = rows.map(([id, p]) => {
     const due = p.paymentMethod === "deposit" ? (p.depositAmount || 0) : (p.total || 0);
     const items = (p.items || []).map(i => _escC(i.name) + " × " + i.qty).join("<br>");
