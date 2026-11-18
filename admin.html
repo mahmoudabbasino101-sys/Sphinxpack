@@ -348,23 +348,6 @@
             <input type="text" id="order-search" placeholder="ابحث برقم الأوردر، اسم العميل، أو رقم الهاتف...">
           </div>
         </div>
-        <div class="card" id="pending-card" style="display:none;border:1.5px solid #f1dc9b;background:#fffaf0;padding:0">
-          <div onclick="togglePending()" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;padding:14px 16px">
-            <strong>💳 طلبات دفع Paymob لسه معلّقة <span id="pending-count"></span></strong>
-            <span id="pending-arrow" style="font-size:14px;transition:transform .2s">▼</span>
-          </div>
-          <div id="pending-body" style="display:none;padding:0 16px 16px">
-            <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px">
-              دي طلبات العميل بدأ فيها الدفع ومفيش أوردر اتعمل لها. لو اتأكدت من <strong>Paymob ← Transactions</strong> إن المعاملة <strong>Successful</strong>، دوس "تأكيد الدفع". ولو العميل ما دفعش احذفها.
-            </p>
-            <input type="text" id="pending-search" placeholder="🔍 ابحث بالاسم أو رقم الهاتف..." oninput="renderPending()"
-              style="width:100%;padding:10px 12px;border:1px solid #d7dce3;border-radius:8px;font:inherit;font-size:14px;margin-bottom:12px;background:#fff">
-            <div style="max-height:60vh;overflow:auto"><table>
-              <thead><tr><th>العميل</th><th>المنتجات</th><th>المطلوب دفعه</th><th>النوع</th><th>الوقت</th><th></th></tr></thead>
-              <tbody id="pending-tbody"></tbody>
-            </table></div>
-          </div>
-        </div>
         <div class="subtabs">
           <button class="active" data-sub="new">جديدة <span id="badge-new"></span></button>
           <button data-sub="done">تم التسليم</button>
@@ -444,6 +427,24 @@
             <thead><tr><th>صورة</th><th>اسم القسم</th><th>الوصف</th><th></th></tr></thead>
             <tbody id="categories-tbody"><tr class="empty-row"><td colspan="4">جاري التحميل...</td></tr></tbody>
           </table>
+        </div>
+
+        <div class="card" id="pending-card" style="display:none;border:1px solid var(--border);padding:0">
+          <div onclick="togglePending()" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;padding:14px 16px">
+            <strong>🛟 استرجاع دفعات Paymob المعلّقة <span id="pending-count"></span></strong>
+            <span id="pending-arrow" style="font-size:14px;transition:transform .2s">▼</span>
+          </div>
+          <div id="pending-body" style="display:none;padding:0 16px 16px">
+            <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px">
+              للحالات النادرة بس: طلبات العميل بدأ فيها الدفع ومفيش أوردر اتعمل لها. الأوردرات الطبيعية بتوصل لصفحة الأوردرات لوحدها بعد الدفع. لو اتأكدت من <strong>Paymob ← Transactions</strong> إن المعاملة <strong>Successful</strong>، دوس "تأكيد الدفع". ولو العميل ما دفعش احذفها.
+            </p>
+            <input type="text" id="pending-search" placeholder="🔍 ابحث بالاسم أو رقم الهاتف..." oninput="renderPending()"
+              style="width:100%;padding:10px 12px;border:1px solid #d7dce3;border-radius:8px;font:inherit;font-size:14px;margin-bottom:12px;background:#fff">
+            <div style="max-height:60vh;overflow:auto"><table>
+              <thead><tr><th>العميل</th><th>المنتجات</th><th>المطلوب دفعه</th><th>النوع</th><th>الوقت</th><th></th></tr></thead>
+              <tbody id="pending-tbody"></tbody>
+            </table></div>
+          </div>
         </div>
 
         <div class="card">
