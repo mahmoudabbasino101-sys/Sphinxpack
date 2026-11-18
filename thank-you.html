@@ -77,6 +77,18 @@
     }).catch(() => {});
   }
 
+  /* تأكيد الدفع فوراً من السيرفر (بيتحقق من توقيع Paymob وبينشئ الأوردر لو الـ Webhook لسه ماوصلش) */
+  if (success === "true" && params.get("hmac") && typeof PAYMENT_SERVER_URL !== "undefined") {
+    const all = {}; params.forEach((v, k) => { all[k] = v; });
+    let pid = ""; try { pid = localStorage.getItem("sp_pending_id") || ""; } catch (e) {}
+    fetch(PAYMENT_SERVER_URL + "/api/confirm-payment", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ params: all, pid })
+    }).then(r => r.json()).then(d => {
+      if (d && d.ok) { showOrderNumber(d.orderNumber); try { localStorage.removeItem("sp_pending_id"); } catch (e) {} }
+    }).catch(() => {});
+  }
+
   initSettings(() => {
     document.getElementById("wa-link").href = "https://wa.me/" + WHATSAPP_NUMBER;
   });
