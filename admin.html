@@ -348,6 +348,17 @@
             <input type="text" id="order-search" placeholder="ابحث برقم الأوردر، اسم العميل، أو رقم الهاتف...">
           </div>
         </div>
+        <div class="card" id="pending-card" style="display:none;border:1.5px solid #f1dc9b;background:#fffaf0">
+          <h2 style="margin-bottom:6px">💳 طلبات دفع Paymob لسه معلّقة <span id="pending-count"></span></h2>
+          <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px">
+            دي طلبات العميل بدأ فيها الدفع ومفيش أوردر اتعمل لها. الطلب الطبيعي بيتحول لأوردر مدفوع لوحده بعد نجاح الدفع، وبيختفي من هنا.
+            لو اتأكدت من <strong>لوحة Paymob ← Transactions</strong> إن المعاملة <strong>Successful</strong>، دوس "تأكيد الدفع". ولو العميل ما دفعش اتجاهله أو احذفه.
+          </p>
+          <div style="overflow-x:auto"><table>
+            <thead><tr><th>العميل</th><th>المنتجات</th><th>المطلوب دفعه</th><th>النوع</th><th>الوقت</th><th></th></tr></thead>
+            <tbody id="pending-tbody"></tbody>
+          </table></div>
+        </div>
         <div class="subtabs">
           <button class="active" data-sub="new">جديدة <span id="badge-new"></span></button>
           <button data-sub="done">تم التسليم</button>
@@ -647,6 +658,7 @@ function showDashboard() {
   initDashboard();
   loadStaffList();
   loadCouriers();
+  loadPendingPayments();
 }
 function showLoginScreen() {
   document.getElementById("dashboard").classList.add("hidden");
@@ -853,6 +865,69 @@ function cleanOrphanCourierOrders() {
   if (!Object.keys(up).length) return;
   _cleaningOrphans = true;
   db.ref().update(up).catch(e => console.error(e)).finally(() => { _cleaningOrphans = false; });
+}
+
+
+/* ---------- دفعات Paymob المعلّقة (استرجاع يدوي لو الإشعار ماوصلش) ---------- */
+let pendingMap = {}, _pendingListening = false;
+function loadPendingPayments() {
+  if (_pendingListening) return;
+  _pendingListening = true;
+  db.ref("pending_payments").on("value", snap => { pendingMap = snap.val() || {}; renderPending(); }, err => console.error(err));
+}
+function renderPending() {
+  const card = document.getElementById("pending-card"); if (!card) return;
+  const rows = Object.entries(pendingMap).filter(([id, p]) => p && p.customerName !== undefined)
+    .sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0));
+  card.style.display = rows.length ? "block" : "none";
+  document.getElementById("pending-count").textContent = rows.length ? "(" + rows.length + ")" : "";
+  document.getElementById("pending-tbody").innerHTML = rows.map(([id, p]) => {
+    const due = p.paymentMethod === "deposit" ? (p.depositAmount || 0) : (p.total || 0);
+    const items = (p.items || []).map(i => _escC(i.name) + " × " + i.qty).join("<br>");
+    const when = p.createdAt ? new Date(p.createdAt).toLocaleString("ar-EG") : "—";
+    return `<tr>
+      <td>${_escC(p.customerName)}<div style="font-size:11.5px;color:var(--text-muted)" dir="ltr">${_escC(p.customerPhone)}</div></td>
+      <td style="font-size:12.5px">${items}</td>
+      <td><strong>${Number(due).toFixed(2)} ج.م</strong><div style="font-size:11.5px;color:var(--text-muted)">إجمالي الفاتورة ${Number(p.total || 0).toFixed(2)}</div></td>
+      <td>${p.paymentMethod === "deposit" ? "عربون" : "كامل"}</td>
+      <td style="font-size:12px">${when}</td>
+      <td style="white-space:nowrap"><button class="btn-primary" onclick="confirmPendingPayment('${id}')">تأكيد الدفع</button>
+        <button class="btn-ghost" style="color:var(--red)" onclick="deletePending('${id}')">حذف</button></td></tr>`;
+  }).join("");
+}
+function deletePending(id) {
+  if (!confirm("حذف الطلب المعلّق ده؟ (مش هيتعمل له أوردر)")) return;
+  db.ref("pending_payments/" + id).remove().then(() => showToast("تم الحذف")).catch(showFbError);
+}
+async function confirmPendingPayment(id) {
+  const p = pendingMap[id]; if (!p) return;
+  const due = p.paymentMethod === "deposit" ? (p.depositAmount || 0) : (p.total || 0);
+  if (!confirm("تأكيد إنك شفت في Paymob معاملة Successful بمبلغ " + Number(due).toFixed(2) + " ج.م من العميل " + p.customerName + "؟\n\nهيتعمل له أوردر مدفوع ويتخصم المخزون.")) return;
+  const txId = prompt("رقم المعاملة (Transaction ID) من Paymob — اختياري، سيبه فاضي لو مش معاك:") || "";
+  try {
+    const exist = await db.ref("orders/" + id).once("value");
+    if (!exist.exists()) {
+      const counter = await db.ref("counters/orders").transaction(cur => (cur || 0) + 1);
+      const order = {
+        customerName: p.customerName, customerPhone: p.customerPhone, address: p.address || "", notes: p.notes || "",
+        items: p.items || [], total: p.total, status: "new", createdAt: p.createdAt || Date.now(),
+        orderNumber: counter.snapshot.val(), paymentMethod: p.paymentMethod, paymentStatus: "paid",
+        paidAt: Date.now(), paymentConfirmedManually: true
+      };
+      if (txId) order.paymentTransactionId = txId;
+      if (p.depositAmount) order.depositAmount = p.depositAmount;
+      if (p.location) order.location = p.location;
+      await db.ref("orders/" + id).set(order);
+      await Promise.all((order.items || []).map(it => (!it.category || !it.id) ? null :
+        db.ref("products/" + it.category + "/" + it.id + "/qty").transaction(cur => Math.max(0, (typeof cur === "number" ? cur : 0) - (it.qty || 0))).catch(() => {})));
+      const key = String(p.customerPhone || "").replace(/[^0-9]/g, "") || "unknown_" + Date.now();
+      await db.ref("customers/" + key + "/name").set(p.customerName || "");
+      await db.ref("customers/" + key + "/phone").set(p.customerPhone || "");
+      await db.ref("customers/" + key + "/orders").push({ total: p.total, createdAt: Date.now() });
+    }
+    await db.ref("pending_payments/" + id).remove();
+    showToast("تم تحويل الطلب لأوردر مدفوع ✅");
+  } catch (e) { showFbError(e); }
 }
 
 function courierBlockHtml(o) {
