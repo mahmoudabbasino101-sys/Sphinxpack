@@ -42,6 +42,7 @@
     <h1 id="status-title">شكرًا لطلبك من SphinxPack</h1>
     <p id="status-message">هنراجع طلبك ونأكد الدفع خلال وقت قصير، وهنتواصل معاك على واتساب.</p>
     <div class="order-num" id="order-num" style="display:none"></div>
+    <a href="#" id="wa-pay" class="btn" style="display:none;background:#25D366;margin-bottom:10px" target="_blank">📲 ابعت تأكيد الدفع على واتساب</a>
     <a href="index.html" class="btn">العودة للمتجر</a>
     <a href="https://wa.me/201028735709" id="wa-link" class="btn secondary">تواصل معنا على واتساب</a>
   </div>
@@ -70,12 +71,48 @@
   }
 
   const firebaseOrderId = directOrderId || (merchantOrderId ? merchantOrderId.split("-")[0] : "");
-  if (firebaseOrderId && typeof db !== "undefined") {
+
+  function payWhatsAppLink(o) {
+    const paid = o.paymentMethod === "deposit" ? (o.depositAmount || 0) : (o.total || 0);
+    const rest = Math.max(0, (o.total || 0) - paid);
+    const items = (o.items || []).map((l, i) =>
+      `${i + 1}) ${l.name} — الكمية: ${l.qty} × ${l.price} ج.م = ${(l.qty * l.price).toFixed(2)} ج.م`).join("\n");
+    const msg = `*طلب جديد من موقع SphinxPack*\n` +
+      `✅ *تم الدفع ${o.paymentMethod === "deposit" ? "(عربون)" : "بالكامل"} عن طريق Paymob*\n\n` +
+      `رقم الأوردر: #${o.orderNumber || ""}\n` +
+      `الاسم: ${o.customerName || ""}\n` +
+      `رقم التواصل: ${o.customerPhone || ""}\n` +
+      (o.address ? `العنوان: ${o.address}\n` : "") +
+      (o.notes ? `ملاحظات: ${o.notes}\n` : "") +
+      `\nتفاصيل الطلب:\n${items}\n\n` +
+      `*الإجمالي: ${Number(o.total || 0).toFixed(2)} ج.م*\n` +
+      `*المبلغ المدفوع: ${Number(paid).toFixed(2)} ج.م*` +
+      (rest > 0 ? `\n*المتبقي عند الاستلام: ${rest.toFixed(2)} ج.م*` : "");
+    return "https://wa.me/" + WHATSAPP_NUMBER + "?text=" + encodeURIComponent(msg);
+  }
+
+  /* بنحاول نقرا الأوردر كذا مرة (ممكن يتأخر ثواني لحد ما السيرفر يأكد الدفع) */
+  function loadOrder(tries) {
+    if (!firebaseOrderId || typeof db === "undefined") return;
     db.ref("orders/" + firebaseOrderId).once("value").then(snap => {
       const o = snap.val();
-      if (o) showOrderNumber(o.orderNumber);
+      if (o) {
+        showOrderNumber(o.orderNumber);
+        if (o.paymentStatus === "paid") {
+          const a = document.getElementById("wa-pay");
+          a.href = payWhatsAppLink(o); a.style.display = "inline-block";
+          /* فتح واتساب تلقائياً مرة واحدة بعد الدفع (بنفس شكل رسالة الدفع عند الاستلام) */
+          let sent = false; try { sent = localStorage.getItem("sp_wa_" + firebaseOrderId) === "1"; } catch (e) {}
+          if (!sent) {
+            try { localStorage.setItem("sp_wa_" + firebaseOrderId, "1"); } catch (e) {}
+            document.getElementById("status-message").textContent = "جاري فتح واتساب لإرسال تأكيد الدفع...";
+            setTimeout(() => { location.href = a.href; }, 1800);
+          }
+        }
+      } else if (tries > 0) setTimeout(() => loadOrder(tries - 1), 2000);
     }).catch(() => {});
   }
+  loadOrder(success === "true" ? 10 : 0);
 
   /* تأكيد الدفع فوراً من السيرفر (بيتحقق من توقيع Paymob وبينشئ الأوردر لو الـ Webhook لسه ماوصلش) */
   if (success === "true" && params.get("hmac") && typeof PAYMENT_SERVER_URL !== "undefined") {
@@ -86,6 +123,7 @@
       body: JSON.stringify({ params: all, pid })
     }).then(r => r.json()).then(d => {
       if (d && d.ok) { showOrderNumber(d.orderNumber); try { localStorage.removeItem("sp_pending_id"); } catch (e) {} }
+      if (d && d.ok && d.orderId && !firebaseOrderId) location.replace("thank-you.html?success=true&order_id=" + d.orderId);
     }).catch(() => {});
   }
 
