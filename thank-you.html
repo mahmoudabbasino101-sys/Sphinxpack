@@ -42,6 +42,7 @@
     <h1 id="status-title">شكرًا لطلبك من SphinxPack</h1>
     <p id="status-message">هنراجع طلبك ونأكد الدفع خلال وقت قصير، وهنتواصل معاك على واتساب.</p>
     <div class="order-num" id="order-num" style="display:none"></div>
+    <div id="tech" style="display:none;font-size:11px;color:#9a9486;margin-bottom:10px;word-break:break-all"></div>
     <a href="#" id="wa-pay" class="btn" style="display:none;background:#25D366;margin-bottom:10px" target="_blank">📲 ابعت تأكيد الدفع على واتساب</a>
     <a href="index.html" class="btn">العودة للمتجر</a>
     <a href="https://wa.me/201028735709" id="wa-link" class="btn secondary">تواصل معنا على واتساب</a>
@@ -70,7 +71,9 @@
     el.style.display = "inline-block";
   }
 
-  const firebaseOrderId = directOrderId || (merchantOrderId ? merchantOrderId.split("-")[0] : "");
+  /* معرّف Firebase نفسه بيبدأ بـ "-" فمينفعش نقسم على أول "-": بنشيل بس آخر جزء (الوقت) */
+  let firebaseOrderId = directOrderId || (merchantOrderId ? merchantOrderId.replace(/-\d{10,}$/, "") : "");
+  if (!firebaseOrderId) { try { firebaseOrderId = localStorage.getItem("sp_pending_id") || ""; } catch (e) {} }
 
   function payWhatsAppLink(o) {
     const paid = o.paymentMethod === "deposit" ? (o.depositAmount || 0) : (o.total || 0);
@@ -115,7 +118,7 @@
   loadOrder(success === "true" ? 10 : 0);
 
   /* تأكيد الدفع فوراً من السيرفر (بيتحقق من توقيع Paymob وبينشئ الأوردر لو الـ Webhook لسه ماوصلش) */
-  if (success === "true" && params.get("hmac") && typeof PAYMENT_SERVER_URL !== "undefined") {
+  if (success === "true" && typeof PAYMENT_SERVER_URL !== "undefined") {
     const all = {}; params.forEach((v, k) => { all[k] = v; });
     let pid = ""; try { pid = localStorage.getItem("sp_pending_id") || ""; } catch (e) {}
     fetch(PAYMENT_SERVER_URL + "/api/confirm-payment", {
@@ -123,7 +126,8 @@
       body: JSON.stringify({ params: all, pid })
     }).then(r => r.json()).then(d => {
       if (d && d.ok) { showOrderNumber(d.orderNumber); try { localStorage.removeItem("sp_pending_id"); } catch (e) {} }
-      if (d && d.ok && d.orderId && !firebaseOrderId) location.replace("thank-you.html?success=true&order_id=" + d.orderId);
+      if (d && d.ok) loadOrder(3);
+      if (d && !d.ok) { const t = document.getElementById("tech"); t.style.display = "block"; t.textContent = "تفاصيل فنية: " + (d.reason || d.status || d.error || "unknown"); }
     }).catch(() => {});
   }
 
