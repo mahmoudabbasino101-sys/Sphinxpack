@@ -94,25 +94,26 @@
     return "https://wa.me/" + WHATSAPP_NUMBER + "?text=" + encodeURIComponent(msg);
   }
 
-  /* بنحاول نقرا الأوردر كذا مرة (ممكن يتأخر ثواني لحد ما السيرفر يأكد الدفع) */
+  /* بنحاول نقرا الأوردر كذا مرة (ممكن يتأخر ثواني لحد ما السيرفر يأكد الدفع)
+     لو السيرفر بعتلك إشعار واتساب تلقائي (notify = sent) مفيش داعي لأي زرار.
+     ولو الإشعار التلقائي مش مفعّل بنفتح واتساب برسالة جاهزة كاحتياطي. */
   function loadOrder(tries) {
     if (!firebaseOrderId || typeof db === "undefined") return;
     db.ref("orders/" + firebaseOrderId).once("value").then(snap => {
       const o = snap.val();
-      if (o) {
-        showOrderNumber(o.orderNumber);
-        if (o.paymentStatus === "paid") {
-          const a = document.getElementById("wa-pay");
-          a.href = payWhatsAppLink(o); a.style.display = "inline-block";
-          /* فتح واتساب تلقائياً مرة واحدة بعد الدفع (بنفس شكل رسالة الدفع عند الاستلام) */
-          let sent = false; try { sent = localStorage.getItem("sp_wa_" + firebaseOrderId) === "1"; } catch (e) {}
-          if (!sent) {
-            try { localStorage.setItem("sp_wa_" + firebaseOrderId, "1"); } catch (e) {}
-            document.getElementById("status-message").textContent = "جاري فتح واتساب لإرسال تأكيد الدفع...";
-            setTimeout(() => { location.href = a.href; }, 1800);
-          }
-        }
-      } else if (tries > 0) setTimeout(() => loadOrder(tries - 1), 2000);
+      if (!o) { if (tries > 0) setTimeout(() => loadOrder(tries - 1), 2000); return; }
+      showOrderNumber(o.orderNumber);
+      if (o.paymentStatus !== "paid") return;
+      if (o.notify === "pending" && tries > 0) { setTimeout(() => loadOrder(tries - 1), 1500); return; }
+      if (o.notify === "sent") return; // وصلتلك رسالة الواتساب تلقائي من السيرفر
+      const a = document.getElementById("wa-pay");
+      a.href = payWhatsAppLink(o); a.style.display = "inline-block";
+      let done = false; try { done = localStorage.getItem("sp_wa_" + firebaseOrderId) === "1"; } catch (e) {}
+      if (!done) {
+        try { localStorage.setItem("sp_wa_" + firebaseOrderId, "1"); } catch (e) {}
+        document.getElementById("status-message").textContent = "جاري فتح واتساب لإرسال تأكيد الدفع...";
+        setTimeout(() => { location.href = a.href; }, 1800);
+      }
     }).catch(() => {});
   }
   loadOrder(success === "true" ? 10 : 0);
