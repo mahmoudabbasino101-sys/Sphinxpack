@@ -146,6 +146,8 @@
     let ok = user.email === ADMIN_EMAIL;
     if (!ok) {
       try { ok = (await db.ref("staff/" + user.uid).once("value")).exists(); } catch (e) { ok = false; }
+      // حساب المندوب ممنوع من صفحة الموظفين حتى لو اتسجّل بالغلط كموظف
+      if (ok) { try { if ((await db.ref("couriers/" + user.uid).once("value")).exists()) ok = false; } catch (e) {} }
     }
     if (!ok) {
       $("l-err").textContent = "الحساب ده غير مصرح له بالدخول. كلّم المدير.";
