@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
 <title>شكرًا لطلبك — SphinxPack</title>
 <link rel="icon" href="assets/images/sphinx-logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -75,6 +76,7 @@
   let firebaseOrderId = directOrderId || (merchantOrderId ? merchantOrderId.replace(/-\d{10,}$/, "") : "");
   if (!firebaseOrderId) { try { firebaseOrderId = localStorage.getItem("sp_pending_id") || ""; } catch (e) {} }
 
+  /* رسالة واتساب بنفس شكل رسالة الدفع عند الاستلام (بتتبني من بيانات الأوردر اللي رجعت من السيرفر بعد توقيع Paymob) */
   function payWhatsAppLink(o) {
     const paid = o.paymentMethod === "deposit" ? (o.depositAmount || 0) : (o.total || 0);
     const rest = Math.max(0, (o.total || 0) - paid);
@@ -94,29 +96,37 @@
     return "https://wa.me/" + WHATSAPP_NUMBER + "?text=" + encodeURIComponent(msg);
   }
 
-  /* بنحاول نقرا الأوردر كذا مرة (ممكن يتأخر ثواني لحد ما السيرفر يأكد الدفع)
-     لو السيرفر بعتلك إشعار واتساب تلقائي (notify = sent) مفيش داعي لأي زرار.
-     ولو الإشعار التلقائي مش مفعّل بنفتح واتساب برسالة جاهزة كاحتياطي. */
-  function loadOrder(tries) {
+  /* الصفحة بتقرا نسخة عامة من الأوردر (رقمه وحالة الدفع بس — من غير أي بيانات شخصية)،
+     وبيانات العميل الكاملة بتيجي من السيرفر بس لو الرجوع جاي بتوقيع Paymob صحيح. */
+  let pub = null, full = null, tries = success === "true" ? 10 : 0, fallbackDone = false;
+
+  function render() {
+    if (pub) showOrderNumber(pub.orderNumber);
+    if (!pub || pub.paymentStatus !== "paid" || fallbackDone) return;
+    if (pub.notify === "sent") return;                 // وصلتك رسالة الواتساب تلقائي من السيرفر
+    if (pub.notify === "pending" && tries > 0) return;  // لسه بنستنى نتيجة الإشعار التلقائي
+    if (!full) return;                                  // مفيش بيانات كاملة (الصفحة اتفتحت من غير رجوع Paymob)
+    fallbackDone = true;
+    const a = document.getElementById("wa-pay");
+    a.href = payWhatsAppLink(full); a.style.display = "inline-block";
+    let done = false; try { done = localStorage.getItem("sp_wa_" + firebaseOrderId) === "1"; } catch (e) {}
+    if (!done) {
+      try { localStorage.setItem("sp_wa_" + firebaseOrderId, "1"); } catch (e) {}
+      document.getElementById("status-message").textContent = "جاري فتح واتساب لإرسال تأكيد الدفع...";
+      setTimeout(() => { location.href = a.href; }, 1800);
+    }
+  }
+
+  function loadPublic() {
     if (!firebaseOrderId || typeof db === "undefined") return;
-    db.ref("orders/" + firebaseOrderId).once("value").then(snap => {
-      const o = snap.val();
-      if (!o) { if (tries > 0) setTimeout(() => loadOrder(tries - 1), 2000); return; }
-      showOrderNumber(o.orderNumber);
-      if (o.paymentStatus !== "paid") return;
-      if (o.notify === "pending" && tries > 0) { setTimeout(() => loadOrder(tries - 1), 1500); return; }
-      if (o.notify === "sent") return; // وصلتلك رسالة الواتساب تلقائي من السيرفر
-      const a = document.getElementById("wa-pay");
-      a.href = payWhatsAppLink(o); a.style.display = "inline-block";
-      let done = false; try { done = localStorage.getItem("sp_wa_" + firebaseOrderId) === "1"; } catch (e) {}
-      if (!done) {
-        try { localStorage.setItem("sp_wa_" + firebaseOrderId, "1"); } catch (e) {}
-        document.getElementById("status-message").textContent = "جاري فتح واتساب لإرسال تأكيد الدفع...";
-        setTimeout(() => { location.href = a.href; }, 1800);
-      }
+    db.ref("orders_public/" + firebaseOrderId).once("value").then(snap => {
+      pub = snap.val();
+      if (!pub) { if (tries > 0) { tries--; setTimeout(loadPublic, 2000); } return; }
+      if (pub.paymentStatus === "paid" && pub.notify === "pending" && tries > 0) { tries--; setTimeout(loadPublic, 1500); }
+      render();
     }).catch(() => {});
   }
-  loadOrder(success === "true" ? 10 : 0);
+  loadPublic();
 
   /* تأكيد الدفع فوراً من السيرفر (بيتحقق من توقيع Paymob وبينشئ الأوردر لو الـ Webhook لسه ماوصلش) */
   if (success === "true" && typeof PAYMENT_SERVER_URL !== "undefined") {
@@ -126,8 +136,13 @@
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ params: all, pid })
     }).then(r => r.json()).then(d => {
-      if (d && d.ok) { showOrderNumber(d.orderNumber); try { localStorage.removeItem("sp_pending_id"); } catch (e) {} }
-      if (d && d.ok) loadOrder(3);
+      if (d && d.ok) {
+        full = d.order || null;
+        if (!firebaseOrderId && d.orderId) firebaseOrderId = d.orderId;
+        showOrderNumber(d.orderNumber);
+        try { localStorage.removeItem("sp_pending_id"); } catch (e) {}
+        loadPublic(); render();
+      }
       if (d && (d.status === "needs-review" || d.status === "amount-mismatch")) document.getElementById("status-message").textContent = "تم استلام دفعتك وجاري مراجعة الطلب، هنتواصل معاك قريباً.";
       if (d && !d.ok) { const t = document.getElementById("tech"); t.style.display = "block"; t.textContent = "تفاصيل فنية: " + (d.reason || d.status || d.error || "unknown"); }
     }).catch(() => {});
