@@ -128,6 +128,7 @@
     }).then(r => r.json()).then(d => {
       if (d && d.ok) { showOrderNumber(d.orderNumber); try { localStorage.removeItem("sp_pending_id"); } catch (e) {} }
       if (d && d.ok) loadOrder(3);
+      if (d && (d.status === "needs-review" || d.status === "amount-mismatch")) document.getElementById("status-message").textContent = "تم استلام دفعتك وجاري مراجعة الطلب، هنتواصل معاك قريباً.";
       if (d && !d.ok) { const t = document.getElementById("tech"); t.style.display = "block"; t.textContent = "تفاصيل فنية: " + (d.reason || d.status || d.error || "unknown"); }
     }).catch(() => {});
   }
