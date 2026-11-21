@@ -618,6 +618,7 @@
   </div>
 </div>
 
+<script>if (top !== self) { top.location = self.location; }</script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -937,6 +938,7 @@ async function confirmPendingPayment(id) {
       if (p.depositAmount) order.depositAmount = p.depositAmount;
       if (p.location) order.location = p.location;
       await db.ref("orders/" + id).set(order);
+      await db.ref("orders_public/" + id).set({ orderNumber: order.orderNumber, paymentStatus: "paid", paymentMethod: order.paymentMethod, notify: "off" });
       await Promise.all((order.items || []).map(it => (!it.category || !it.id) ? null :
         db.ref("products/" + it.category + "/" + it.id + "/qty").transaction(cur => Math.max(0, (typeof cur === "number" ? cur : 0) - (it.qty || 0))).catch(() => {})));
       const key = String(p.customerPhone || "").replace(/[^0-9]/g, "") || "unknown_" + Date.now();
@@ -1464,6 +1466,7 @@ function saveConfirmedPaidAmount(id) {
   if (isNaN(val) || val < 0) { showToast("اكتب مبلغ صحيح"); return; }
   const o = allOrders.find(x => x.id === id);
   const newStatus = val > 0 ? "confirmed" : (o.paymentStatus || "unpaid");
+  db.ref("orders_public/" + id + "/paymentStatus").set(newStatus).catch(() => {});
   db.ref("orders/" + id).update({ confirmedPaidAmount: val, paymentStatus: newStatus })
     .then(() => showToast("تم حفظ المبلغ المدفوع")).catch(showFbError);
 }
@@ -1485,6 +1488,7 @@ function printOrderInvoice() {
     paidAmount = parseFloat(liveInput.value) || 0;
     if (paidAmount !== (o.confirmedPaidAmount || 0)) {
       const newStatus = paidAmount > 0 ? "confirmed" : (o.paymentStatus || "unpaid");
+      db.ref("orders_public/" + o.id + "/paymentStatus").set(newStatus).catch(() => {});
       db.ref("orders/" + o.id).update({ confirmedPaidAmount: paidAmount, paymentStatus: newStatus }).catch(showFbError);
     }
   } else if (o.confirmedPaidAmount !== undefined && o.confirmedPaidAmount !== null) paidAmount = o.confirmedPaidAmount;
@@ -1539,6 +1543,7 @@ window.handleDeleteOrder = function (id) {
   /* حذف الأوردر + نسخته عند موظف التوصيل + بيانات التتبع في عملية واحدة */
   const up = {};
   up["orders/" + id] = null;
+  up["orders_public/" + id] = null;
   up["tracking/" + id] = null;
   Object.keys(courierOrdersMap || {}).forEach(uid => {
     if (courierOrdersMap[uid] && courierOrdersMap[uid][id]) up["courier_orders/" + uid + "/" + id] = null;
