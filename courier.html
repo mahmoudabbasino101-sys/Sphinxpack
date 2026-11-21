@@ -87,6 +87,7 @@
 </div>
 <div id="toast"></div>
 
+<script>if (top !== self) { top.location = self.location; }</script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -200,7 +201,7 @@
     const t = Date.now();
     const upd = { status }; upd[status==="delivered" ? "deliveredAt" : "failedAt"] = t;
     db.ref("courier_orders/"+me.uid+"/"+oid).update(upd)
-      .then(() => db.ref("tracking/"+oid).update({ status: status==="delivered" ? "delivered" : "ended", ts:t }))
+      .then(() => db.ref("tracking/"+oid).update({ status: status==="delivered" ? "delivered" : "ended", ts:t, lat:null, lng:null, acc:null }))
       .then(() => toast(status==="delivered" ? "تم تسجيل التسليم ✅" : "تم تسجيل تعذر التسليم"))
       .catch(showErr);
   }
