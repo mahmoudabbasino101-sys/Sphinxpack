@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
 <title>تتبع طلبك — SphinxPack</title>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
@@ -41,7 +42,7 @@
 
   if (!oid) { $("status").textContent = "اللينك غير صحيح"; }
   else {
-    db.ref("orders/" + oid + "/orderNumber").once("value").then(s => { orderNo = s.val() ? " #" + s.val() : ""; paint(); }).catch(() => {});
+    db.ref("orders_public/" + oid + "/orderNumber").once("value").then(s => { orderNo = s.val() ? " #" + s.val() : ""; paint(); }).catch(() => {});
     db.ref("tracking/" + oid).on("value", s => { last = s.val(); paint(); }, () => { $("status").textContent = "تعذر تحميل بيانات التتبع"; });
     setInterval(paint, 20000);
   }
