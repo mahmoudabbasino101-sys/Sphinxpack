@@ -99,6 +99,7 @@
 
 <div id="toast"></div>
 
+<script>if (top !== self) { top.location = self.location; }</script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -135,10 +136,27 @@
   }
   function doLogout() { firebase.auth().signOut(); }
 
-  firebase.auth().onAuthStateChanged(user => {
-    $("login-view").classList.toggle("hidden", !!user);
-    $("app-view").classList.toggle("hidden", !user);
-    if (user && !started) { started = true; startApp(); }
+  firebase.auth().onAuthStateChanged(async user => {
+    if (!user) {
+      $("login-view").classList.remove("hidden");
+      $("app-view").classList.add("hidden");
+      return;
+    }
+    // الدخول مسموح للأدمن أو لأي حساب مضاف في قايمة الموظفين (من لوحة الأدمن ← الإعدادات)
+    let ok = user.email === ADMIN_EMAIL;
+    if (!ok) {
+      try { ok = (await db.ref("staff/" + user.uid).once("value")).exists(); } catch (e) { ok = false; }
+    }
+    if (!ok) {
+      $("l-err").textContent = "الحساب ده غير مصرح له بالدخول. كلّم المدير.";
+      $("login-view").classList.remove("hidden");
+      $("app-view").classList.add("hidden");
+      firebase.auth().signOut();
+      return;
+    }
+    $("login-view").classList.add("hidden");
+    $("app-view").classList.remove("hidden");
+    if (!started) { started = true; startApp(); }
   });
 
   /* ---------- تشغيل الصفحة ---------- */
