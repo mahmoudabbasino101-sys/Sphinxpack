@@ -759,7 +759,7 @@ function loadStaffList() {
     tb.innerHTML = rows.map(([uid, st]) => {
       const d = st.createdAt ? new Date(st.createdAt).toLocaleDateString("ar-EG") : "—";
       const em = String(st.email || uid).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-      return `<tr><td dir="ltr" style="text-align:right">${em}</td><td>${d}</td><td><button class="btn-ghost" onclick="removeStaff('${uid}')">إيقاف</button></td></tr>`;
+      return `<tr><td dir="ltr" style="text-align:right">${em}</td><td>${d}</td><td><button class="btn-ghost" onclick="removeStaff(${_jq(uid)})">إيقاف</button></td></tr>`;
     }).join("");
   }, err => console.error(err));
 }
@@ -837,8 +837,8 @@ function renderCouriers() {
     return `<tr>
       <td>${_escC(c.name)}<div style="font-size:11.5px;color:var(--text-muted)" dir="ltr">${_escC(c.email)}</div></td>
       <td><strong>${done.length}</strong></td><td>${total.toFixed(0)} ج.م</td><td>${cash.toFixed(0)} ج.م</td><td>${pend}</td>
-      <td style="white-space:nowrap"><button class="btn-ghost" onclick="toggleCourier('${uid}')">${c.active === false ? "تفعيل" : "إيقاف"}</button>
-        <button class="btn-ghost" style="color:var(--red)" onclick="deleteCourier('${uid}')">حذف</button></td></tr>`;
+      <td style="white-space:nowrap"><button class="btn-ghost" onclick="toggleCourier(${_jq(uid)})">${c.active === false ? "تفعيل" : "إيقاف"}</button>
+        <button class="btn-ghost" style="color:var(--red)" onclick="deleteCourier(${_jq(uid)})">حذف</button></td></tr>`;
   }).join("");
 }
 
@@ -906,12 +906,12 @@ function renderPending() {
     const when = p.createdAt ? new Date(p.createdAt).toLocaleString("ar-EG") : "—";
     return `<tr>
       <td>${_escC(p.customerName)}<div style="font-size:11.5px;color:var(--text-muted)" dir="ltr">${_escC(p.customerPhone)}</div></td>
-      <td style="font-size:12.5px">${items}</td>
+      <td style="font-size:12.5px">${items}${p.flag ? `<div style="color:var(--red);font-size:11.5px;margin-top:4px">⚠ محتاج مراجعة: ${_escC(p.flag)}</div>` : ""}</td>
       <td><strong>${Number(due).toFixed(2)} ج.م</strong><div style="font-size:11.5px;color:var(--text-muted)">إجمالي الفاتورة ${Number(p.total || 0).toFixed(2)}</div></td>
       <td>${p.paymentMethod === "deposit" ? "عربون" : "كامل"}</td>
       <td style="font-size:12px">${when}</td>
-      <td style="white-space:nowrap"><button class="btn-primary" onclick="confirmPendingPayment('${id}')">تأكيد الدفع</button>
-        <button class="btn-ghost" style="color:var(--red)" onclick="deletePending('${id}')">حذف</button></td></tr>`;
+      <td style="white-space:nowrap"><button class="btn-primary" onclick="confirmPendingPayment(${_jq(id)})">تأكيد الدفع</button>
+        <button class="btn-ghost" style="color:var(--red)" onclick="deletePending(${_jq(id)})">حذف</button></td></tr>`;
   }).join("");
 }
 function deletePending(id) {
@@ -960,12 +960,12 @@ function courierBlockHtml(o) {
       <select id="assign-courier-select" style="flex:1;padding:9px 10px;border:1px solid var(--input-border);border-radius:7px;font-size:13.5px">
         <option value="">— بدون —</option>${opts}
       </select>
-      <button class="btn-dark" onclick="assignOrderToCourier('${o.id}')">تعيين</button>
+      <button class="btn-dark" onclick="assignOrderToCourier(${_jq(o.id)})">تعيين</button>
     </div>
     ${co ? `<div style="margin-top:6px;font-size:13px">حالة التوصيل: <strong>${label[co.status] || co.status}</strong></div>` : ""}
     ${co && (co.status === "out" || co.status === "assigned") ? `
     <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
-      <button class="btn-ghost" onclick="copyTrackLink('${o.id}')">نسخ لينك التتبع</button>
+      <button class="btn-ghost" onclick="copyTrackLink(${_jq(o.id)})">نسخ لينك التتبع</button>
       <a class="btn-ghost" style="text-decoration:none" target="_blank" href="${_trackWa(o)}">إرسال اللينك للعميل واتساب</a>
     </div>` : ""}`;
 }
@@ -1028,7 +1028,7 @@ function showToast(msg){
 /* ---------------- إعداد اختيار القسم ---------------- */
 const catSelect = document.getElementById("p-cat");
 initCategories(() => {
-  catSelect.innerHTML = CATEGORIES.map(c => `<option value="${c.slug}">${c.name}</option>`).join("");
+  catSelect.innerHTML = CATEGORIES.map(c => `<option value="${c.slug}">${_escC(c.name)}</option>`).join("");
   renderCategoriesTable();
 });
 
@@ -1039,8 +1039,8 @@ function renderCategoriesTable() {
   tbody.innerHTML = CATEGORIES.map(c => `
     <tr>
       <td><div class="prod-thumb">${c.image ? `<img src="${c.image}">` : `<i class="fa-solid fa-${c.icon||'box'}"></i>`}</div></td>
-      <td>${c.name}</td>
-      <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-muted);font-size:12.5px">${c.description || "—"}</td>
+      <td>${_escC(c.name)}</td>
+      <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-muted);font-size:12.5px">${_escC(c.description || "—")}</td>
       <td class="row-actions"><i class="fa-solid fa-trash-can" title="حذف القسم" onclick='deleteCategory(${safeJson(c)})'></i></td>
     </tr>`).join("");
 }
@@ -1165,9 +1165,9 @@ function renderSocialLinksTable() {
   if (!SOCIAL_LINKS.length) { tbody.innerHTML = `<tr class="empty-row"><td colspan="3">لا توجد روابط بعد</td></tr>`; return; }
   tbody.innerHTML = SOCIAL_LINKS.map(s => `
     <tr>
-      <td>${s.name}</td>
+      <td>${_escC(s.name)}</td>
       <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><a href="${s.url}" target="_blank">${s.url}</a></td>
-      <td class="row-actions"><i class="fa-solid fa-trash-can" title="حذف الرابط" onclick="deleteSocialLink('${s.key}')"></i></td>
+      <td class="row-actions"><i class="fa-solid fa-trash-can" title="حذف الرابط" onclick="deleteSocialLink(${_jq(s.key)})"></i></td>
     </tr>`).join("");
 }
 function addSocialLink() {
@@ -1324,8 +1324,8 @@ function renderProductsTable() {
   tbody.innerHTML = list.map(p => `
     <tr>
       <td><div class="prod-thumb">${p.image ? `<img src="${p.image}">` : '<i class="fa-solid fa-box"></i>'}</div></td>
-      <td>${p.name}</td>
-      <td>${p.barcode || "—"}</td>
+      <td>${_escC(p.name)}</td>
+      <td>${_escC(p.barcode || "—")}</td>
       <td>${(p.price ?? 0).toFixed(2)} ج.م</td>
       <td>${p.qty ?? 0}</td>
       <td>${catName(p.category)}</td>
@@ -1343,6 +1343,27 @@ document.getElementById("product-search").addEventListener("input", renderProduc
 
 /* ---------------- الأوردرات ---------------- */
 let currentOrderSub = "new";
+/* حماية من XSS: _jq بيحوّل أي id لقيمة JS آمنة جوه onclick، و normalizeOrder بيجبر الأرقام والنصوص لأنواعها الصحيحة */
+const _jq = v => _escC(JSON.stringify(String(v)));
+function normalizeOrder(id, o) {
+  const n = { ...o, id };
+  ["total", "depositAmount", "confirmedPaidAmount", "createdAt", "orderNumber", "paidAt"].forEach(k => {
+    if (n[k] !== undefined && n[k] !== null) { const v = Number(n[k]); n[k] = isFinite(v) ? v : 0; }
+  });
+  if (n.location) {
+    const la = Number(n.location.lat), ln = Number(n.location.lng);
+    n.location = (isFinite(la) && isFinite(ln)) ? { lat: la, lng: ln, acc: Number(n.location.acc) || 0 } : null;
+  }
+  n.items = Array.isArray(n.items) ? n.items.map(i => ({
+    ...i, name: String((i && i.name) ?? ""), qty: Number(i && i.qty) || 0, price: Number(i && i.price) || 0,
+    piecesPerCarton: (i && i.piecesPerCarton) ? (Number(i.piecesPerCarton) || null) : null
+  })) : [];
+  ["customerName", "customerPhone", "address", "notes", "paymentMethod", "paymentStatus", "status", "courierName", "courierUid"].forEach(k => {
+    if (n[k] != null && typeof n[k] !== "string") n[k] = String(n[k]);
+  });
+  if (typeof n.paymentProofImage === "string" && !/^data:image\/(png|jpe?g|webp|gif);base64,[A-Za-z0-9+\/=]+$/.test(n.paymentProofImage)) n.paymentProofImage = "";
+  return n;
+}
 let allOrders = [];
 document.querySelectorAll('.subtabs button[data-sub]').forEach(btn => {
   btn.addEventListener("click", () => {
@@ -1365,27 +1386,27 @@ function renderOrdersTable() {
     );
   }
   tbody.innerHTML = filtered.length ? filtered.map(o => `
-    <tr style="cursor:pointer" onclick="openOrderModal('${o.id}')">
+    <tr style="cursor:pointer" onclick="openOrderModal(${_jq(o.id)})">
       <td>#${o.orderNumber || "—"}</td>
       <td>${o.createdAt ? new Date(o.createdAt).toLocaleString("ar-EG") : "—"}</td>
-      <td>${o.customerName || "—"}</td>
-      <td>${o.customerPhone || "—"}</td>
-      <td class="order-detail">${(o.items||[]).map(i=>`<div>${i.name} × ${i.qty}</div>`).join("")}</td>
+      <td>${_escC(o.customerName || "—")}</td>
+      <td>${_escC(o.customerPhone || "—")}</td>
+      <td class="order-detail">${(o.items||[]).map(i=>`<div>${_escC(i.name)} × ${i.qty}</div>`).join("")}</td>
       <td>${(o.total??0).toFixed(2)} ج.م</td>
-      <td><span class="status-pill ${o.status==="done"?"done":"new"}">${o.status==="done"?"تم التسليم":"جديد"}</span>${o.courierName?`<div style="font-size:11.5px;color:var(--text-muted);margin-top:4px">🚚 ${o.courierName}</div>`:""}</td>
-      <td onclick="event.stopPropagation()">${o.status!=="done" ? `<button class="btn-primary" style="padding:7px 12px;font-size:12.5px" onclick="handleConfirmOrder('${o.id}')">تأكيد الاستلام</button>` : ""}
-        <i class="fa-solid fa-trash-can" title="حذف الأوردر" style="cursor:pointer;color:var(--red);margin-right:10px" onclick="handleDeleteOrder('${o.id}')"></i></td>
+      <td><span class="status-pill ${o.status==="done"?"done":"new"}">${o.status==="done"?"تم التسليم":"جديد"}</span>${o.courierName?`<div style="font-size:11.5px;color:var(--text-muted);margin-top:4px">🚚 ${_escC(o.courierName)}</div>`:""}</td>
+      <td onclick="event.stopPropagation()">${o.status!=="done" ? `<button class="btn-primary" style="padding:7px 12px;font-size:12.5px" onclick="handleConfirmOrder(${_jq(o.id)})">تأكيد الاستلام</button>` : ""}
+        <i class="fa-solid fa-trash-can" title="حذف الأوردر" style="cursor:pointer;color:var(--red);margin-right:10px" onclick="handleDeleteOrder(${_jq(o.id)})"></i></td>
     </tr>`).join("") : `<tr class="empty-row"><td colspan="8">لا توجد أوردرات هنا حاليًا</td></tr>`;
 
   const dashTbody = document.getElementById("dash-orders-tbody");
   const recentNew = allOrders.filter(o=>(o.status||"new")==="new").sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).slice(0,5);
   dashTbody.innerHTML = recentNew.length ? recentNew.map(o => `
-    <tr style="cursor:pointer" onclick="openOrderModal('${o.id}')">
+    <tr style="cursor:pointer" onclick="openOrderModal(${_jq(o.id)})">
       <td>${o.createdAt ? new Date(o.createdAt).toLocaleString("ar-EG") : "—"}</td>
-      <td>${o.customerName || "—"}</td>
-      <td>${o.customerPhone || "—"}</td>
+      <td>${_escC(o.customerName || "—")}</td>
+      <td>${_escC(o.customerPhone || "—")}</td>
       <td>${(o.total??0).toFixed(2)} ج.م</td>
-      <td onclick="event.stopPropagation()"><button class="btn-primary" style="padding:7px 12px;font-size:12.5px" onclick="handleConfirmOrder('${o.id}')">تأكيد</button></td>
+      <td onclick="event.stopPropagation()"><button class="btn-primary" style="padding:7px 12px;font-size:12.5px" onclick="handleConfirmOrder(${_jq(o.id)})">تأكيد</button></td>
     </tr>`).join("") : `<tr class="empty-row"><td colspan="5">لا توجد أوردرات جديدة</td></tr>`;
 
   renderCustomersTable();
@@ -1403,16 +1424,16 @@ function openOrderModal(id) {
     <div><strong>رقم الأوردر:</strong> #${o.orderNumber || "—"}</div>
     <div><strong>طريقة الدفع:</strong> ${paymentMethodLabel(o.paymentMethod)} ${o.paymentStatus ? `<span class="status-pill ${(o.paymentStatus==='paid'||o.paymentStatus==='confirmed')?'ok':(o.paymentStatus==='failed'?'low':'new')}" style="margin-right:6px">${paymentStatusLabel(o.paymentStatus)}</span>` : ""}</div>
     <div><strong>التاريخ:</strong> ${o.createdAt ? new Date(o.createdAt).toLocaleString("ar-EG") : "—"}</div>
-    <div><strong>العميل:</strong> ${o.customerName || "—"}</div>
-    <div><strong>الهاتف:</strong> ${o.customerPhone || "—"}</div>
-    <div><strong>العنوان:</strong> ${o.address || "—"}</div>
+    <div><strong>العميل:</strong> ${_escC(o.customerName || "—")}</div>
+    <div><strong>الهاتف:</strong> ${_escC(o.customerPhone || "—")}</div>
+    <div><strong>العنوان:</strong> ${_escC(o.address || "—")}</div>
     ${o.location ? `<div><strong>الموقع:</strong> <a href="https://www.google.com/maps/search/?api=1&query=${o.location.lat},${o.location.lng}" target="_blank" style="font-weight:700">📍 افتح موقع العميل على الخريطة</a></div>` : ""}
-    <div><strong>ملاحظات:</strong> ${o.notes || "—"}</div>
+    <div><strong>ملاحظات:</strong> ${_escC(o.notes || "—")}</div>
     ${o.paymentProofImage ? `<div style="margin-top:10px"><strong>صورة إثبات التحويل:</strong><br><img src="${o.paymentProofImage}" style="max-width:100%;border-radius:8px;margin-top:6px;border:1px solid var(--border);cursor:pointer" onclick="window.open(this.src,'_blank')"></div>` : ""}
     <div style="margin-top:10px"><strong>الأصناف:</strong></div>
     <table style="width:100%;margin-top:6px">
       <thead><tr><th>الصنف</th><th>الكمية</th><th>سعر الكرتونة</th></tr></thead>
-      <tbody>${(o.items||[]).map(i => `<tr><td>${i.name}${i.piecesPerCarton ? `<div style="font-size:11px;color:var(--text-muted)">الكرتونة ${i.piecesPerCarton} قطعة</div>` : ""}</td><td>${i.qty}</td><td>${(i.price||0).toFixed(2)} ج.م</td></tr>`).join("")}</tbody>
+      <tbody>${(o.items||[]).map(i => `<tr><td>${_escC(i.name)}${i.piecesPerCarton ? `<div style="font-size:11px;color:var(--text-muted)">الكرتونة ${i.piecesPerCarton} قطعة</div>` : ""}</td><td>${i.qty}</td><td>${(i.price||0).toFixed(2)} ج.م</td></tr>`).join("")}</tbody>
     </table>
     <div style="margin-top:10px;font-weight:800">الإجمالي: ${(o.total??0).toFixed(2)} ج.م</div>
     ${o.paymentMethod === "deposit" ? `
@@ -1423,7 +1444,7 @@ function openOrderModal(id) {
       <label style="font-size:13px;font-weight:700;display:block;margin-bottom:6px">المبلغ المدفوع فعليًا (بعد مراجعة صورة الإثبات)</label>
       <div style="display:flex;gap:8px">
         <input type="number" id="confirmed-paid-input" min="0" step="0.01" value="${o.confirmedPaidAmount ?? ''}" placeholder="0.00" style="flex:1;padding:9px 10px;border:1px solid var(--input-border);border-radius:7px;font-size:13.5px">
-        <button class="btn-dark" onclick="saveConfirmedPaidAmount('${o.id}')">حفظ</button>
+        <button class="btn-dark" onclick="saveConfirmedPaidAmount(${_jq(o.id)})">حفظ</button>
       </div>
       <div id="remaining-preview" style="margin-top:6px;font-size:13px;color:var(--text-muted)"></div>
     </div>
@@ -1454,7 +1475,7 @@ function closeOrderModal() {
 function printOrderInvoice() {
   if (!openOrder) return;
   const o = allOrders.find(x => x.id === openOrder.id) || openOrder;
-  const rows = (o.items||[]).map(i => `<tr><td>${i.name}${i.piecesPerCarton ? ` (الكرتونة ${i.piecesPerCarton} قطعة)` : ""}</td><td>${i.qty}</td><td>${(i.price||0).toFixed(2)} ج.م / الكرتونة</td><td>${((i.price||0)*(i.qty||0)).toFixed(2)} ج.م</td></tr>`).join("");
+  const rows = (o.items||[]).map(i => `<tr><td>${_escC(i.name)}${i.piecesPerCarton ? ` (الكرتونة ${i.piecesPerCarton} قطعة)` : ""}</td><td>${i.qty}</td><td>${(i.price||0).toFixed(2)} ج.م / الكرتونة</td><td>${((i.price||0)*(i.qty||0)).toFixed(2)} ج.م</td></tr>`).join("");
 
   /* لو فيه رقم مكتوب دلوقتي في خانة "المبلغ المدفوع فعليًا" (حتى لو لسه ما اتحفظش)،
      نستخدمه فورًا في الطباعة ونحفظه في نفس اللحظة، عشان الفاتورة تعكس آخر حاجة كتبتها */
@@ -1479,9 +1500,9 @@ function printOrderInvoice() {
         <div><strong>التاريخ:</strong> ${o.createdAt ? new Date(o.createdAt).toLocaleString("ar-EG") : "—"}</div>
       </div>
     </div>
-    <div><strong>اسم العميل:</strong> ${o.customerName || "—"}</div>
-    <div><strong>رقم الهاتف:</strong> ${o.customerPhone || "—"}</div>
-    <div><strong>العنوان:</strong> ${o.address || "—"}</div>
+    <div><strong>اسم العميل:</strong> ${_escC(o.customerName || "—")}</div>
+    <div><strong>رقم الهاتف:</strong> ${_escC(o.customerPhone || "—")}</div>
+    <div><strong>العنوان:</strong> ${_escC(o.address || "—")}</div>
     <table class="inv-table">
       <thead><tr><th>الصنف</th><th>الكمية</th><th>سعر الكرتونة</th><th>الإجمالي</th></tr></thead>
       <tbody>${rows}</tbody>
@@ -1539,12 +1560,12 @@ function renderCustomersTable() {
   if (!list.length) { tbody.innerHTML = `<tr class="empty-row"><td colspan="6">لا يوجد عملاء بعد</td></tr>`; return; }
   tbody.innerHTML = list.map(c => `
     <tr>
-      <td>${c.name || "—"}</td>
-      <td>${c.phone ? `<a href="https://wa.me/2${String(c.phone).replace(/^0/,'')}" target="_blank">${c.phone}</a>` : "—"}</td>
+      <td>${_escC(c.name || "—")}</td>
+      <td>${c.phone ? `<a href="https://wa.me/2${String(c.phone).replace(/\D/g,"").replace(/^0/,'')}" target="_blank">${_escC(c.phone)}</a>` : "—"}</td>
       <td>${c.ordersCount || 0}</td>
       <td>${(c.totalSpent||0).toFixed(2)} ج.م</td>
       <td>${c.lastOrderAt ? new Date(c.lastOrderAt).toLocaleDateString("ar-EG") : "—"}</td>
-      <td><i class="fa-solid fa-trash-can" title="حذف العميل" style="cursor:pointer;color:var(--red)" onclick="handleDeleteCustomer('${c.key}')"></i></td>
+      <td><i class="fa-solid fa-trash-can" title="حذف العميل" style="cursor:pointer;color:var(--red)" onclick="handleDeleteCustomer(${_jq(c.key)})"></i></td>
     </tr>`).join("");
 }
 window.handleDeleteCustomer = function (key) {
@@ -1586,12 +1607,12 @@ function initDashboard() {
   db.ref("orders").once("value").then(snap => {
     const val = snap.val() || {};
     Object.keys(val).forEach(id => seenOrderIds.add(id));
-    allOrders = Object.entries(val).map(([id,o]) => ({ id, ...o }));
+    allOrders = Object.entries(val).map(([id,o]) => normalizeOrder(id, o));
     updateOrderStats(); renderOrdersTable(); ordersInitialized = true;
     if (typeof cleanOrphanCourierOrders === "function") cleanOrphanCourierOrders();
     db.ref("orders").on("value", snap2 => {
       const val2 = snap2.val() || {};
-      const newList = Object.entries(val2).map(([id,o]) => ({ id, ...o }));
+      const newList = Object.entries(val2).map(([id,o]) => normalizeOrder(id, o));
       if (ordersInitialized) {
         newList.forEach(o => {
           if (!seenOrderIds.has(o.id)) { seenOrderIds.add(o.id); playAlertSound(); showToast("📦 وصل أوردر جديد!"); }
@@ -1663,7 +1684,7 @@ function renderAccountsView() {
   const rows = Object.values(perProduct).sort((a, b) => (b.revenue - b.cost) - (a.revenue - a.cost));
   tbody.innerHTML = rows.length ? rows.map(r => `
     <tr>
-      <td>${r.name}</td>
+      <td>${_escC(r.name)}</td>
       <td>${r.qty}</td>
       <td>${r.revenue.toFixed(2)} ج.م</td>
       <td>${r.cost.toFixed(2)} ج.م</td>
