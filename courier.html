@@ -115,7 +115,9 @@
     if(!user){ $("login-view").classList.remove("hidden"); $("app-view").classList.add("hidden"); return; }
     let snap = null;
     try { snap = await db.ref("couriers/"+user.uid).once("value"); } catch(e) {}
-    if(!snap || !snap.exists() || snap.val().active === false){
+    let isStaff = false;
+    try { isStaff = (await db.ref("staff/"+user.uid).once("value")).exists(); } catch(e) {}
+    if(!snap || !snap.exists() || snap.val().active === false || isStaff){
       $("l-err").textContent = "الحساب ده غير مصرح له بالدخول. كلّم المدير.";
       $("login-view").classList.remove("hidden"); $("app-view").classList.add("hidden");
       firebase.auth().signOut(); return;
