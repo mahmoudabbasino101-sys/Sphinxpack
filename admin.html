@@ -1362,7 +1362,7 @@ function normalizeOrder(id, o) {
     ...i, name: String((i && i.name) ?? ""), qty: Number(i && i.qty) || 0, price: Number(i && i.price) || 0,
     piecesPerCarton: (i && i.piecesPerCarton) ? (Number(i.piecesPerCarton) || null) : null
   })) : [];
-  ["customerName", "customerPhone", "address", "notes", "paymentMethod", "paymentStatus", "status", "courierName", "courierUid"].forEach(k => {
+  ["customerName", "customerPhone", "address", "notes", "paymentMethod", "paymentStatus", "status", "courierName", "courierUid", "stockWarning"].forEach(k => {
     if (n[k] != null && typeof n[k] !== "string") n[k] = String(n[k]);
   });
   if (typeof n.paymentProofImage === "string" && !/^data:image\/(png|jpe?g|webp|gif);base64,[A-Za-z0-9+\/=]+$/.test(n.paymentProofImage)) n.paymentProofImage = "";
@@ -1431,6 +1431,7 @@ function openOrderModal(id) {
     <div><strong>العميل:</strong> ${_escC(o.customerName || "—")}</div>
     <div><strong>الهاتف:</strong> ${_escC(o.customerPhone || "—")}</div>
     <div><strong>العنوان:</strong> ${_escC(o.address || "—")}</div>
+    ${o.stockWarning ? `<div style="background:#fde3e6;color:#e0455a;padding:8px 10px;border-radius:8px;margin:6px 0;font-weight:700">⚠ ${_escC(o.stockWarning)}</div>` : ""}
     ${o.location ? `<div><strong>الموقع:</strong> <a href="https://www.google.com/maps/search/?api=1&query=${o.location.lat},${o.location.lng}" target="_blank" style="font-weight:700">📍 افتح موقع العميل على الخريطة</a></div>` : ""}
     <div><strong>ملاحظات:</strong> ${_escC(o.notes || "—")}</div>
     ${o.paymentProofImage ? `<div style="margin-top:10px"><strong>صورة إثبات التحويل:</strong><br><img src="${o.paymentProofImage}" style="max-width:100%;border-radius:8px;margin-top:6px;border:1px solid var(--border);cursor:pointer" onclick="window.open(this.src,'_blank')"></div>` : ""}
