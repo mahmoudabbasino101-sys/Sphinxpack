@@ -10,6 +10,18 @@ let WALLET_NUMBER = "01028735709"; // رقم فودافون كاش للتحوي�
 let INSTAPAY_NUMBER = "01028735709"; // رقم/حساب إنستاباي للتحويل اليدوي
 
 /* رابط سيرفر الدفع (Vercel) — هيتظبط بعد ما يترفع سيرفر Paymob */
+/* حماية من XSS: أي نص جاي من قاعدة البيانات أو من السلة بيتنقّى قبل ما يتحط في HTML */
+function escHtml(v) {
+  return String(v ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+function safeUrl(u) {
+  try { const x = new URL(String(u || ""), location.href); return /^https?:$/.test(x.protocol) ? x.href : "#"; } catch (e) { return "#"; }
+}
+function safeImg(u) {
+  u = String(u || "");
+  return /^data:image\/(png|jpe?g|webp|gif|svg\+xml);base64,[A-Za-z0-9+\/=]+$/.test(u) || /^https?:\/\//.test(u) ? u : "";
+}
+
 const PAYMENT_SERVER_URL = "https://sphinxpack-server.vercel.app";
 
 function localPhone(intl) {
@@ -55,7 +67,8 @@ function initCategories(callback) {
     } else {
       const seed = {};
       DEFAULT_CATEGORIES.forEach(c => { seed[c.slug] = { name: c.name, icon: c.icon }; });
-      db.ref("categories").set(seed);
+      /* بنكتب الأقسام الافتراضية بس لو اللي فاتح هو الأدمن (الزوار مالهمش صلاحية كتابة) */
+      if (typeof firebase.auth === "function" && firebase.auth().currentUser) db.ref("categories").set(seed).catch(() => {});
       CATEGORIES = DEFAULT_CATEGORIES.slice();
     }
     callback(CATEGORIES);
@@ -187,7 +200,7 @@ function renderDrawer() {
       <div class="cart-line">
         <div class="thumb">${l.image ? `<img src="${l.image}" alt="">` : ICONS.bag}</div>
         <div class="info">
-          <span class="name">${l.name}</span>
+          <span class="name">${escHtml(l.name)}</span>
           <span class="cat">${catName(l.category)}</span>
           <div class="row">
             <div class="qty-box">
@@ -219,95 +232,45 @@ function buildWhatsappMessage(cart, customer) {
     `*الإجمالي: ${cartTotal(cart).toFixed(2)} ج.م*`;
 }
 
-/* حفظ الطلب في Firebase عشان يظهر في صفحة الأدمن */
-function pushOrderToFirebase(cart, customer, extra) {
-  if (typeof db === "undefined") return Promise.resolve(null);
-  const order = {
-    customerName: customer.name,
-    customerPhone: customer.phone,
-    address: customer.address || "",
-    notes: customer.notes || "",
-    items: cart.map(l => ({ id: l.id, name: l.name, category: l.category, price: l.price, qty: l.qty, piecesPerCarton: l.piecesPerCarton || null })),
-    total: cartTotal(cart),
-    status: "new",
-    createdAt: Date.now(),
-    paymentMethod: (extra && extra.paymentMethod) || "cod",
-    paymentStatus: (extra && extra.paymentStatus) || "unpaid",
-  };
-  if (customer.location) order.location = customer.location;
-  if (extra && extra.depositAmount) order.depositAmount = extra.depositAmount;
-  if (extra && extra.paymentProofImage) order.paymentProofImage = extra.paymentProofImage;
-  upsertCustomer(customer, order.total);
-  decrementStock(cart);
-  /* رقم تسلسلي لكل أوردر (١، ٢، ٣...) عشان يسهل البحث والمتابعة */
-  return db.ref("counters/orders").transaction(cur => (cur || 0) + 1).then(result => {
-    order.orderNumber = result.snapshot.val();
-    return db.ref("orders").push(order).then(ref => ({ id: ref.key, orderNumber: order.orderNumber, order }));
-  });
-}
-
-/* خصم الكمية المباعة من مخزون كل منتج تلقائيًا (بدون ما تقل عن صفر) */
-function decrementStock(cart) {
-  if (typeof db === "undefined") return;
-  cart.forEach(item => {
-    if (!item.category || !item.id) return;
-    db.ref("products/" + item.category + "/" + item.id + "/qty").transaction(current => {
-      const cur = (typeof current === "number") ? current : 0;
-      return Math.max(0, cur - item.qty);
-    }).catch(err => console.warn("تعذر تحديث المخزون:", err));
-  });
-}
-
-/* حفظ بيانات الطلب مؤقتًا وقت التحويل لصفحة الدفع (عربون/كامل عبر Paymob) —
-   الأوردر الحقيقي مبيتعملش إلا بعد ما السيرفر يتأكد إن الدفع نجح فعلاً،
-   عشان محدش يشوف في لوحة التحكم أوردرات لسه مدفوعتش. */
-function pushPendingPayment(cart, customer, extra) {
-  if (typeof db === "undefined") return Promise.resolve(null);
-  const record = {
-    customerName: customer.name,
-    customerPhone: customer.phone,
-    address: customer.address || "",
-    notes: customer.notes || "",
-    items: cart.map(l => ({ id: l.id, name: l.name, category: l.category, price: l.price, qty: l.qty, piecesPerCarton: l.piecesPerCarton || null })),
-    total: cartTotal(cart),
-    paymentMethod: (extra && extra.paymentMethod) || "full",
-    createdAt: Date.now(),
-  };
-  if (customer.location) record.location = customer.location;
-  if (extra && extra.depositAmount) record.depositAmount = extra.depositAmount;
-  return db.ref("pending_payments").push(record).then(ref => ({ id: ref.key }));
-}
-
-/* طلب رابط دفع Paymob من السيرفر الخاص بينا (المفاتيح السرية مش هنا) */
-function createPaymobPayment(orderInfo, amount, customer) {
-  try { localStorage.setItem("sp_pending_id", orderInfo.id); } catch (e) {} // عشان صفحة الشكر تعرف الطلب لو Paymob ما رجّعش رقمه
-  return fetch(PAYMENT_SERVER_URL + "/api/create-payment", {
+/* ---------- التعامل مع السيرفر ----------
+   إنشاء الأوردرات وتجهيز الدفع بيتم من السيرفر (Vercel): هو اللي بيحسب الأسعار والإجمالي
+   ويرقّم الأوردر ويخصم المخزون، والمتصفح مابيكتبش في قاعدة البيانات خالص. */
+function postToServer(path, body) {
+  return fetch(PAYMENT_SERVER_URL + path, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      amount,
-      orderId: orderInfo.id,
-      orderNumber: orderInfo.orderNumber,
-      customerName: customer.name,
-      customerPhone: customer.phone,
-      returnUrl: new URL("thank-you.html", location.href).href, // الرجوع لصفحة الشكر بعد الدفع
-    }),
-  }).then(r => r.json());
+    body: JSON.stringify(body),
+  }).then(async r => {
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.error || "حصل خطأ، جرّب تاني");
+    return d;
+  });
+}
+function cartForServer(cart) {
+  return cart.map(l => ({ id: l.id, category: l.category, qty: l.qty })); // بنبعت المعرّف والكمية بس، الأسعار بتتحسب في السيرفر
+}
+function pushOrderToFirebase(cart, customer, extra) {
+  return postToServer("/api/create-order", {
+    cart: cartForServer(cart),
+    customer: { name: customer.name, phone: customer.phone, address: customer.address || "", notes: customer.notes || "", location: customer.location || null },
+    paymentMethod: (extra && extra.paymentMethod) || "cod",
+    proofImage: (extra && extra.paymentProofImage) || undefined,
+  });
 }
 
-/* حفظ/تحديث بيانات العميل (الاسم والهاتف) كل ما حد يعمل أوردر
-   ملحوظة: مبنستخدمش transaction هنا عمدًا لأن العميل نفسه (غير مسجل دخول)
-   معندوش صلاحية "قراءة" بيانات العملاء (عشان الخصوصية)، والـ transaction
-   محتاجة قراءة القيمة الحالية الأول قبل الكتابة. بدل كده كل أوردر بيتسجل
-   كسطر منفصل تحت العميل، ولوحة الأدمن بتجمع العدد والإجمالي من السطور دي. */
-function upsertCustomer(customer, orderTotal) {
-  if (typeof db === "undefined") return;
-  const key = (customer.phone || "").replace(/[^0-9]/g, "") || "unknown_" + Date.now();
-  db.ref("customers/" + key + "/name").set(customer.name || "").catch(err => console.warn("تعذر حفظ اسم العميل:", err));
-  db.ref("customers/" + key + "/phone").set(customer.phone || "").catch(err => console.warn("تعذر حفظ رقم العميل:", err));
-  db.ref("customers/" + key + "/orders").push({ total: orderTotal, createdAt: Date.now() })
-    .catch(err => console.warn("تعذر تسجيل أوردر العميل:", err));
+/* تجهيز دفعة Paymob (عربون/كامل): السيرفر بيحسب المبلغ ويحفظ الطلب مؤقتًا ويرجّع رابط الدفع */
+function createPaymobPayment(cart, customer, method) {
+  return postToServer("/api/create-payment", {
+    cart: cartForServer(cart),
+    customer: { name: customer.name, phone: customer.phone, address: customer.address || "", notes: customer.notes || "", location: customer.location || null },
+    paymentMethod: method,
+    returnUrl: new URL("thank-you.html", location.href).href, // الرجوع لصفحة الشكر بعد الدفع
+  }).then(d => {
+    try { localStorage.setItem("sp_pending_id", d.orderId); } catch (e) {}
+    return d;
+  });
 }
+
 
 /* ضغط أي صورة (لقطة شاشة تحويل، صورة منتج...) لحجم صغير مناسب للتخزين في Firebase */
 function compressImage(file, maxSize = 700, quality = 0.72) {
@@ -343,12 +306,12 @@ function sendOrderViaWhatsapp(customer, extra) {
   window.open(url, "_blank");
 
   const pushPromise = pushOrderToFirebase(cart, customer, extra);
-  pushPromise.catch(err => console.warn("تعذر حفظ الطلب:", err));
-
-  localStorage.removeItem(CART_KEY);
-  updateCartCount();
-  if (typeof renderCartPage === "function") renderCartPage();
-  renderDrawer();
+  pushPromise.then(() => {
+    localStorage.removeItem(CART_KEY);
+    updateCartCount();
+    if (typeof renderCartPage === "function") renderCartPage();
+    renderDrawer();
+  }).catch(err => console.warn("تعذر حفظ الطلب:", err));
   return pushPromise;
 }
 
@@ -374,7 +337,7 @@ function loadProducts(categorySlug, cb) {
 function renderCatNav(activeSlug) {
   return `<nav class="cat-nav"><ul>
     <li><a href="index.html" class="${!activeSlug ? "active" : ""}">الرئيسية</a></li>
-    ${CATEGORIES.map(c => `<li><a href="category.html?cat=${c.slug}" class="${activeSlug === c.slug ? "active" : ""}">${c.name}</a></li>`).join("")}
+    ${CATEGORIES.map(c => `<li><a href="category.html?cat=${encodeURIComponent(c.slug)}" class="${activeSlug === c.slug ? "active" : ""}">${escHtml(c.name)}</a></li>`).join("")}
   </ul></nav>`;
 }
 
@@ -416,7 +379,7 @@ function mountFooter() {
       </div>
       <div>
         <h4>الأقسام</h4>
-        ${CATEGORIES.map(c => `<a href="category.html?cat=${c.slug}">${c.name}</a>`).join("")}
+        ${CATEGORIES.map(c => `<a href="category.html?cat=${encodeURIComponent(c.slug)}">${escHtml(c.name)}</a>`).join("")}
       </div>
       <div>
         <h4>تواصل معنا</h4>
