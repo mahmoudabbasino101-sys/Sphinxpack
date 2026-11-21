@@ -86,12 +86,12 @@
     if (!p) return;
     currentModalProduct = p;
     document.getElementById("pm-image").innerHTML = p.image
-      ? `<img src="${p.image}" style="width:100%;height:100%;object-fit:cover">`
+      ? `<img src="${escHtml(safeImg(p.image))}" style="width:100%;height:100%;object-fit:cover">`
       : (ICONS[p._iconSlug] || ICONS.box);
     document.getElementById("pm-name").textContent = p.name + (p.size ? ` (${p.size})` : "");
     document.getElementById("pm-desc").textContent = p.description || "";
     document.getElementById("pm-pieces").textContent = p.piecesPerCarton ? `عدد القطع في الكرتونة: ${p.piecesPerCarton} قطعة` : "";
-    document.getElementById("pm-price").textContent = `${(p.price || 0).toFixed(2)} ج.م / الكرتونة`;
+    document.getElementById("pm-price").textContent = `${(Number(p.price) || 0).toFixed(2)} ج.م / الكرتونة`;
     document.getElementById("pm-qty").value = 1;
     document.getElementById("pm-add-btn").onclick = (e) => {
       const qty = parseInt(document.getElementById("pm-qty").value || "1");
@@ -122,10 +122,10 @@
       productsById[p.id] = { ...p, _iconSlug: iconSlug };
       return `
       <div class="prod-card">
-        <div class="thumb" style="cursor:pointer" onclick="openProductModal('${p.id}')">${p.image ? `<img src="${p.image}" alt="${p.name}">` : (iconOverride || iconFor(p.category))}</div>
+        <div class="thumb" style="cursor:pointer" onclick="openProductModal(${escHtml(JSON.stringify(String(p.id)))})">${p.image ? `<img src="${escHtml(safeImg(p.image))}" alt="${escHtml(p.name)}">` : (iconOverride || iconFor(p.category))}</div>
         <div class="body">
-          <h4 style="cursor:pointer" onclick="openProductModal('${p.id}')">${p.name}</h4>
-          ${p.size ? `<div class="size-tag">${p.size}</div>` : ""}
+          <h4 style="cursor:pointer" onclick="openProductModal(${escHtml(JSON.stringify(String(p.id)))})">${escHtml(p.name)}</h4>
+          ${p.size ? `<div class="size-tag">${escHtml(p.size)}</div>` : ""}
           <span class="stock ${stockOk ? "" : "low"}">${stockOk ? "متوفر" : "غير متوفر حاليًا"}</span>
           <div class="add-row">
             <div class="qty-box">
