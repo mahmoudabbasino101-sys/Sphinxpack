@@ -731,6 +731,7 @@ async function addStaff() {
       } else throw e;
     }
     await auth.signOut();
+    if ((await db.ref("couriers/" + uid).once("value")).exists()) { showToast("الحساب ده مندوب توصيل — استخدم إيميل مختلف للموظف"); btn.disabled = false; return; }
     await db.ref("staff/" + uid).set({ email, createdAt: firebase.database.ServerValue.TIMESTAMP });
     document.getElementById("staff-email").value = "";
     document.getElementById("staff-pass").value = "";
@@ -795,6 +796,7 @@ async function addCourier() {
   const btn = document.getElementById("add-courier-btn"); btn.disabled = true;
   try {
     const uid = await getOrCreateUid(email, pass);
+    if ((await db.ref("staff/" + uid).once("value")).exists()) { showToast("الحساب ده موظف منتجات — استخدم إيميل مختلف للمندوب"); btn.disabled = false; return; }
     await db.ref("couriers/" + uid).set({ name, phone, email, active: true, createdAt: firebase.database.ServerValue.TIMESTAMP });
     ["courier-name","courier-phone","courier-email","courier-pass"].forEach(i => document.getElementById(i).value = "");
     showToast("تمت إضافة المندوب");
