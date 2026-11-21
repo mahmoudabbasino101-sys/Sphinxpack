@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>فحص أمان قواعد Firebase</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,'Segoe UI',Tahoma,sans-serif;background:#eef1f5;color:#1f2430}
+  .wrap{max-width:680px;margin:0 auto;padding:14px}
+  .card{background:#fff;border:1px solid #e4e7ec;border-radius:12px;padding:14px;margin-bottom:12px}
+  h1{font-size:18px;margin:0 0 6px} h2{font-size:15px;margin:0 0 10px}
+  p{font-size:13px;color:#6b7280;margin:4px 0}
+  input{width:100%;padding:10px;border:1px solid #d7dce3;border-radius:8px;font:inherit;margin-bottom:8px}
+  button{font:inherit;font-weight:700;border:none;border-radius:8px;padding:11px 16px;cursor:pointer}
+  .dark{background:#151d2e;color:#fff} .light{background:#e9ecf1;color:#1f2430}
+  .row{display:flex;gap:8px;flex-wrap:wrap}
+  .t{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px solid #eef0f3;font-size:13.5px}
+  .t:last-child{border:none}
+  .badge{white-space:nowrap;padding:3px 10px;border-radius:99px;font-size:12px;font-weight:700}
+  .ok{background:#dcf5e3;color:#1e9e4e} .bad{background:#fde3e6;color:#e0455a} .warn{background:#fff1d6;color:#b87400}
+  .small{font-size:12px;color:#6b7280;margin-top:2px}
+  #summary{font-weight:800;font-size:15px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <h1>🛡️ فحص أمان قواعد Firebase</h1>
+    <p>بيجرّب يقرا ويكتب في الأماكن الحساسة بنفس صلاحيات الحساب المسجّل حالياً، ويقولك هل النتيجة زي المتوقع.</p>
+    <p>الكتابة بتتم على مسارات تجريبية (<code>__sectest__</code>) وبتتمسح بعدها. <strong>امسح الملف ده من GitHub بعد ما تخلص.</strong></p>
+  </div>
+
+  <div class="card">
+    <h2>1) الحساب اللي هتفحص بيه</h2>
+    <p id="who">جاري التحقق...</p>
+    <input id="em" type="email" dir="ltr" placeholder="إيميل (مندوب / موظف / أدمن) — سيبه فاضي لو عايز زائر عادي">
+    <input id="pw" type="password" dir="ltr" placeholder="الباسورد">
+    <div class="row">
+      <button class="light" onclick="login()">تسجيل دخول</button>
+      <button class="light" onclick="logout()">خروج (زائر عادي)</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>2) شغّل الفحص</h2>
+    <button class="dark" id="go" onclick="runAll()" style="width:100%">▶ ابدأ الفحص</button>
+    <p id="summary" style="margin-top:12px"></p>
+  </div>
+
+  <div class="card" id="res" style="display:none"></div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="assets/firebase-init.js"></script>
+<script>
+  const ADMIN = "admin@sphinxpack.app";
+  const ALL = ["anon","user","staff","courier","admin"];
+  const AUTHED = ["user","staff","courier","admin"];
+  const $ = id => document.getElementById(id);
+  let role = "anon";
+
+  /* ===== قائمة الفحوصات =====
+     who  = الأدوار المسموح لها (النتيجة المتوقعة)
+     weak = ثغرة معروفة: مفتوحة للكل بالتصميم الحالي (هتظهر تحذير مش خطأ) */
+  const TESTS = [
+    // ---- قراءة ----
+    { n:"قراءة قائمة الأوردرات", k:"r", p:"orders", who:["admin"] },
+    { n:"قراءة قائمة العملاء", k:"r", p:"customers", who:["admin"] },
+    { n:"قراءة تكلفة المنتجات (سعر الجملة)", k:"r", p:"product_costs", who:["admin"] },
+    { n:"قراءة طلبات الدفع المعلّقة", k:"r", p:"pending_payments", who:["admin"] },
+    { n:"قراءة قائمة الموظفين", k:"r", p:"staff", who:["admin"] },
+    { n:"قراءة قائمة المناديب", k:"r", p:"couriers", who:["admin"] },
+    { n:"قراءة فواتير كل المناديب", k:"r", p:"courier_orders", who:["admin"] },
+    { n:"قراءة المنتجات (عامة)", k:"r", p:"products", who:ALL },
+    { n:"قراءة الأقسام (عامة)", k:"r", p:"categories", who:ALL },
+    { n:"قراءة الإعدادات (عامة)", k:"r", p:"settings", who:ALL },
+    // ---- كتابة ----
+    { n:"إضافة/تعديل منتج", k:"w", p:"products/__sectest__/x", v:{name:"t"}, who:["admin","staff"] },
+    { n:"إضافة قسم", k:"w", p:"categories/__sectest__", v:{name:"t"}, who:["admin"] },
+    { n:"تغيير الإعدادات", k:"w", p:"settings/__sectest__", v:"t", who:["admin"] },
+    { n:"كتابة تكلفة منتج", k:"w", p:"product_costs/__sectest__", v:{a:1}, who:["admin"] },
+    { n:"إضافة موظف لنفسه", k:"w", p:"staff/__sectest__", v:{email:"t"}, who:["admin"] },
+    { n:"إضافة مندوب لنفسه", k:"w", p:"couriers/__sectest__", v:{name:"t",active:true}, who:["admin"] },
+    { n:"إضافة فاتورة لمندوب", k:"w", p:"courier_orders/__sectest__/x", v:{status:"assigned"}, who:["admin"] },
+    { n:"كتابة موقع تتبع وهمي", k:"w", p:"tracking/__sectest__", v:{status:"out"}, who:["admin"] },
+    // ---- ثغرات معروفة (مفتوحة بالتصميم الحالي) ----
+    { n:"حذف سجل عميل", k:"w", p:"customers/__sectest__", v:null, who:["admin"] },
+    { n:"حذف عدّاد الأوردرات (إعادة الترقيم)", k:"w", p:"counters/__sectest__", v:null, who:[] },
+    { n:"إغراق الطلبات المعلّقة بسجل فاضي", k:"w", p:"pending_payments/__sectest__", v:{a:1}, who:[] },
+    { n:"إنشاء منتج وهمي بكمية", k:"w", p:"products/__sectest__/y/qty", v:5, who:[] },
+    { n:"إنشاء أوردر مزوّر مدفوع", k:"w", p:"orders/-SecTest0123456789AB", v:{customerName:"t",customerPhone:"1",items:[{name:"t"}],total:1,paymentStatus:"paid"}, who:["admin"] },
+    { n:"أوردر بملاحظات ضخمة (2000 حرف)", k:"w", p:"orders/-SecTest0123456789AC", v:{customerName:"t",customerPhone:"1",items:[{name:"t"}],total:1,paymentStatus:"unpaid",notes:"x".repeat(2000)}, who:[] },
+    { n:"أوردر بمعرّف غير صالح (حقن)", k:"w", p:"orders/__bad_id__", v:{customerName:"t",customerPhone:"1",items:[{name:"t"}],total:1}, who:[] },
+    { n:"كتابة رقم عشوائي في عدّاد الأوردرات", k:"w", p:"counters/__sectest__", v:999, who:[] },
+  ];
+
+  async function detectRole() {
+    const u = firebase.auth().currentUser;
+    if (!u) return "anon";
+    if (u.email === ADMIN) return "admin";
+    try { if ((await db.ref("staff/" + u.uid).once("value")).exists()) return "staff"; } catch (e) {}
+    try { if ((await db.ref("couriers/" + u.uid).once("value")).exists()) return "courier"; } catch (e) {}
+    return "user";
+  }
+  const ROLE_AR = { anon:"زائر عادي (من غير تسجيل)", user:"حساب مسجّل من غير صلاحيات", staff:"موظف منتجات", courier:"مندوب توصيل", admin:"أدمن" };
+
+  async function refreshWho() {
+    role = await detectRole();
+    const u = firebase.auth().currentUser;
+    $("who").innerHTML = "الفحص هيتم بصلاحية: <strong>" + ROLE_AR[role] + "</strong>" + (u ? " (" + u.email + ")" : "");
+  }
+  firebase.auth().onAuthStateChanged(refreshWho);
+
+  function login() {
+    const e = $("em").value.trim(), p = $("pw").value;
+    if (!e || !p) { alert("اكتب الإيميل والباسورد"); return; }
+    firebase.auth().signInWithEmailAndPassword(e, p).then(() => { $("pw").value = ""; }).catch(() => alert("الإيميل أو الباسورد غلط"));
+  }
+  function logout() { firebase.auth().signOut(); }
+
+  async function tryOp(t) {
+    try {
+      if (t.k === "r") await db.ref(t.p).limitToFirst(1).once("value");
+      else await db.ref(t.p).set(t.v);
+      return { allowed: true };
+    } catch (e) { return { allowed: false, code: e.code || e.message }; }
+  }
+
+  async function runAll() {
+    $("go").disabled = true; $("summary").textContent = "جاري الفحص...";
+    await refreshWho();
+    const rows = []; const junk = [];
+    let bad = 0, warn = 0, good = 0;
+
+    for (const t of TESTS) {
+      const r = await tryOp(t);
+      if (t.k === "w" && r.allowed) {
+        try { await db.ref(t.p).remove(); } catch (e) { junk.push(t.p); }
+      }
+      const expected = t.who.includes(role);
+      let cls, txt;
+      if (r.allowed === expected) {
+        if (t.weak && r.allowed) { cls = "warn"; txt = "⚠ مفتوح (معروف)"; warn++; }
+        else { cls = "ok"; txt = "✅ سليم"; good++; }
+      } else {
+        cls = "bad"; bad++;
+        txt = r.allowed ? "❌ مسموح وهو المفروض يتمنع" : "❌ ممنوع وهو المفروض يتسمح";
+      }
+      rows.push({ t, cls, txt, r, expected });
+    }
+
+    // فحص تعديل كمية منتج حقيقي (بيرجّعها فوراً)
+    let qtyRow = null;
+    try {
+      const snap = await db.ref("products").limitToFirst(1).once("value");
+      const cats = snap.val() || {}; const cat = Object.keys(cats)[0];
+      const pid = cat && Object.keys(cats[cat] || {})[0];
+      const old = pid && cats[cat][pid].qty;
+      if (pid && typeof old === "number") {
+        const path = "products/" + cat + "/" + pid + "/qty";
+        let allowed = false;
+        try { await db.ref(path).set(old + 1000); allowed = true; } catch (e) {}
+        if (allowed) { try { await db.ref(path).set(old); } catch (e) { junk.push(path + " (القيمة الأصلية: " + old + ")"); } }
+        const exp = AUTHED.includes(role);
+        qtyRow = { n:"زيادة كمية منتج حقيقي (بيتم الرجوع لها فوراً)", ok: allowed === exp, allowed };
+      }
+    } catch (e) {}
+    if (qtyRow) {
+      rows.push({ t:{ n:qtyRow.n }, cls: qtyRow.ok ? "ok" : "bad", txt: qtyRow.ok ? "✅ سليم" : "❌ زيادة المخزون مسموحة للزوار", r:{ allowed: qtyRow.allowed }, expected: null });
+      qtyRow.ok ? good++ : bad++;
+    }
+
+    $("res").style.display = "block";
+    $("res").innerHTML = "<h2>النتيجة</h2>" + rows.map(x =>
+      `<div class="t"><div>${x.t.n}<div class="small">${x.t.k==="r"?"قراءة":"كتابة"} — ${x.r.allowed ? "اتسمحت" : "اترفضت"}${x.t.weak ? " — " + x.t.weak : ""}</div></div><span class="badge ${x.cls}">${x.txt}</span></div>`
+    ).join("") + (junk.length ? `<p style="color:#e0455a;margin-top:10px">تعذر مسح: ${junk.join(" ، ")} — امسحها يدوياً من Firebase.</p>` : "");
+    $("summary").textContent = `✅ سليم: ${good}   ⚠ ثغرات معروفة: ${warn}   ❌ أخطاء: ${bad}`;
+    $("go").disabled = false;
+  }
+</script>
+</body>
+</html>
