@@ -109,7 +109,7 @@
         <div class="cart-line">
           <div class="thumb">${l.image ? `<img src="${l.image}" alt="">` : ICONS.bag}</div>
           <div class="info">
-            <span class="name">${l.name}</span>
+            <span class="name">${escHtml(l.name)}</span>
             <span class="cat">${catName(l.category)}${l.piecesPerCarton ? ` — الكرتونة ${l.piecesPerCarton} قطعة` : ""}</span>
             <div class="row">
               <div class="qty-box">
@@ -210,6 +210,9 @@
     if (method === "cod") {
       sendOrderViaWhatsapp(customer, { paymentMethod: "cod", paymentStatus: "unpaid" }).then(orderInfo => {
         location.href = "thank-you.html" + (orderInfo ? "?order_id=" + orderInfo.id : "");
+      }).catch(err => {
+        statusEl.style.display = "block";
+        statusEl.textContent = (err && err.message) ? err.message : "تعذر حفظ الطلب، جرّب تاني.";
       });
       return;
     }
@@ -228,31 +231,25 @@
       }).catch(err => {
         console.error(err);
         btn.disabled = false;
-        statusEl.textContent = "تعذر رفع الصورة، جرّب تاني.";
+        statusEl.style.display = "block";
+        statusEl.textContent = (err && err.message) ? err.message : "تعذر رفع الصورة، جرّب تاني.";
       });
       return;
     }
 
-    /* عربون أو دفع كامل: نحفظ الطلب مؤقتًا، وبعدين نحوّل المستخدم لصفحة الدفع —
-       الأوردر الحقيقي هيتعمل بس بعد تأكيد نجاح الدفع من Paymob */
-    const amount = method === "deposit" ? +(total * DEPOSIT_PERCENT / 100).toFixed(2) : total;
+    /* عربون أو دفع كامل: السيرفر بيحسب المبلغ من أسعار المنتجات ويحفظ الطلب مؤقتًا،
+       والأوردر الحقيقي هيتعمل بس بعد تأكيد نجاح الدفع من Paymob */
     btn.disabled = true;
     statusEl.style.display = "block";
     statusEl.textContent = "جاري تجهيز صفحة الدفع...";
 
-    pushPendingPayment(cart, customer, {
-      paymentMethod: method,
-      depositAmount: method === "deposit" ? amount : undefined,
-    }).then(pendingInfo => {
-      if (!pendingInfo) throw new Error("تعذر تجهيز الطلب");
-      return createPaymobPayment(pendingInfo, amount, customer);
-    }).then(data => {
-      if (!data || !data.paymentUrl) throw new Error(data && data.error ? data.error : "تعذر إنشاء رابط الدفع");
+    createPaymobPayment(cart, customer, method).then(data => {
+      if (!data || !data.paymentUrl) throw new Error("تعذر إنشاء رابط الدفع");
       localStorage.removeItem(CART_KEY);
       location.href = data.paymentUrl;
     }).catch(err => {
       console.error(err);
-      statusEl.textContent = "حصلت مشكلة أثناء تجهيز الدفع، جرّب تاني أو اختار الدفع عند الاستلام.";
+      statusEl.textContent = (err && err.message) ? err.message : "حصلت مشكلة أثناء تجهيز الدفع، جرّب تاني أو اختار الدفع عند الاستلام.";
       btn.disabled = false;
     });
   });
