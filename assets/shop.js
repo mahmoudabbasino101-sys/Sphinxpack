@@ -106,14 +106,29 @@ function saveCart(cart) {
   localStorage.setItem(CART_KEY, JSON.stringify(cart));
   updateCartCount();
 }
+/* رسالة نقص المخزون */
+function stockMsg(stock) {
+  return stock > 0
+    ? "الكمية غير متوفرة في المخزن. المتاح حاليًا: " + stock
+    : "المنتج غير متوفر حاليًا في المخزن";
+}
+/* بترجّع true لو اتضاف، و false لو الكمية المطلوبة (مع اللي في السلة) أكبر من المخزون */
 function addToCart(product, qty) {
   const cart = getCart();
   const line = cart.find(l => l.id === product.id);
-  if (line) line.qty += qty;
+  const stock = typeof product.qty === "number" ? product.qty : null;
+  const inCart = line ? line.qty : 0;
+  if (stock !== null && inCart + qty > stock) {
+    showToast(stockMsg(stock) + (inCart ? " (عندك " + inCart + " في السلة)" : ""));
+    return false;
+  }
+  if (line) { line.qty += qty; if (stock !== null) line.stock = stock; }
   else cart.push({ id: product.id, name: product.name, category: product.category,
-                    price: product.price, image: product.image || "", piecesPerCarton: product.piecesPerCarton || null, qty });
+                    price: product.price, image: product.image || "", piecesPerCarton: product.piecesPerCarton || null, qty,
+                    stock: stock });
   saveCart(cart);
   showToast(`تمت إضافة "${product.name}" للسلة`);
+  return true;
 }
 function removeFromCart(id) {
   saveCart(getCart().filter(l => l.id !== id));
@@ -125,9 +140,31 @@ function setLineQty(id, qty) {
   const line = cart.find(l => l.id === id);
   if (!line) return;
   line.qty = Math.max(1, qty);
+  if (typeof line.stock === "number" && line.qty > line.stock) {
+    line.qty = Math.max(1, line.stock);
+    showToast(stockMsg(line.stock));
+  }
   saveCart(cart);
   renderDrawer();
   if (typeof renderCartPage === "function") renderCartPage();
+}
+/* بنحدّث المتاح من المخزون لكل منتج في السلة، ولو الكمية أكبر من المتاح بنقلّلها ونبلّغ العميل */
+function refreshCartStock(cb) {
+  const cart = getCart();
+  if (!cart.length || typeof db === "undefined") { if (cb) cb(); return; }
+  Promise.all(cart.map(l => db.ref("products/" + l.category + "/" + l.id + "/qty").once("value")
+    .then(snap => ({ id: l.id, qty: snap.val() })).catch(() => null))).then(rs => {
+    const c = getCart(); const msgs = []; let changed = false;
+    rs.forEach(r => {
+      if (!r || typeof r.qty !== "number") return;
+      const line = c.find(x => x.id === r.id); if (!line) return;
+      line.stock = r.qty; changed = true;
+      if (r.qty > 0 && line.qty > r.qty) { line.qty = r.qty; msgs.push(line.name + ": " + stockMsg(r.qty)); }
+    });
+    if (changed) saveCart(c);
+    if (msgs.length) showToast(msgs.join(" — "));
+    if (cb) cb();
+  });
 }
 function cartTotal(cart) {
   return cart.reduce((s, l) => s + l.price * l.qty, 0);
@@ -182,6 +219,7 @@ function ensureDrawer() {
 function openDrawer() {
   ensureDrawer();
   renderDrawer();
+  refreshCartStock(() => renderDrawer());
   document.getElementById("cart-drawer").classList.add("open");
   document.getElementById("cart-overlay").classList.add("open");
 }
