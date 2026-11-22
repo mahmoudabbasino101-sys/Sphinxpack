@@ -46,6 +46,7 @@
       </div>
       <button class="btn btn-amber" id="pm-add-btn" style="flex:1">أضف للسلة</button>
     </div>
+    <div id="pm-msg" style="display:none;color:#e0455a;font-size:13px;margin-top:8px;font-weight:700"></div>
   </div>
 </div>
 
@@ -59,15 +60,26 @@
   const emptyNote = document.getElementById("empty-note");
   const productsById = {};
 
+  /* بنمنع زيادة الكمية عن المتاح في المخزن ونقول للعميل المتاح كام */
+  function showStockMsg(el, stock) {
+    if (!el) return;
+    el.textContent = stockMsg(stock);
+    el.style.display = "block";
+  }
   window.stepQty = function (id, delta) {
     const input = document.getElementById("q-" + id);
-    const v = Math.max(1, parseInt(input.value || "1") + delta);
+    const p = productsById[id];
+    const msg = document.getElementById("m-" + id);
+    let v = Math.max(1, parseInt(input.value || "1") + delta);
+    const stock = p && typeof p.qty === "number" ? p.qty : null;
+    if (stock !== null && v > stock) { v = Math.max(1, stock); showStockMsg(msg, stock); }
+    else if (msg) msg.style.display = "none";
     input.value = v;
   };
   window.addFromCard = function (p, btn) {
     const qty = parseInt(document.getElementById("q-" + p.id).value || "1");
-    addToCart(p, qty);
-    if (btn) flashAddedState(btn);
+    if (addToCart(p, qty)) { if (btn) flashAddedState(btn); }
+    else if (typeof p.qty === "number") showStockMsg(document.getElementById("m-" + p.id), p.qty);
   };
   window.flashAddedState = function (btn) {
     if (btn._flashTimer) clearTimeout(btn._flashTimer);
@@ -93,11 +105,13 @@
     document.getElementById("pm-pieces").textContent = p.piecesPerCarton ? `عدد القطع في الكرتونة: ${p.piecesPerCarton} قطعة` : "";
     document.getElementById("pm-price").textContent = `${(Number(p.price) || 0).toFixed(2)} ج.م / الكرتونة`;
     document.getElementById("pm-qty").value = 1;
+    document.getElementById("pm-msg").style.display = "none";
     document.getElementById("pm-add-btn").onclick = (e) => {
       const qty = parseInt(document.getElementById("pm-qty").value || "1");
-      addToCart(p, qty);
-      flashAddedState(e.currentTarget);
-      setTimeout(closeProductModal, 600);
+      if (addToCart(p, qty)) {
+        flashAddedState(e.currentTarget);
+        setTimeout(closeProductModal, 600);
+      } else if (typeof p.qty === "number") showStockMsg(document.getElementById("pm-msg"), p.qty);
     };
     document.getElementById("product-modal").style.display = "flex";
   };
@@ -106,7 +120,12 @@
   };
   window.pmStepQty = function (delta) {
     const input = document.getElementById("pm-qty");
-    input.value = Math.max(1, parseInt(input.value || "1") + delta);
+    const msg = document.getElementById("pm-msg");
+    let v = Math.max(1, parseInt(input.value || "1") + delta);
+    const stock = currentModalProduct && typeof currentModalProduct.qty === "number" ? currentModalProduct.qty : null;
+    if (stock !== null && v > stock) { v = Math.max(1, stock); showStockMsg(msg, stock); }
+    else msg.style.display = "none";
+    input.value = v;
   };
 
   initSettings(() => initCategories(function () {
@@ -135,6 +154,7 @@
             </div>
             <button class="btn btn-amber" ${stockOk ? "" : "disabled"} onclick='addFromCard(${safeJson(p)}, this)'>أضف للسلة</button>
           </div>
+          <div id="m-${p.id}" style="display:none;color:#e0455a;font-size:12.5px;margin-top:6px;font-weight:700"></div>
         </div>
       </div>`;
     }
