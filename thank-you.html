@@ -128,8 +128,9 @@
   }
   loadPublic();
 
-  /* تأكيد الدفع فوراً من السيرفر (بيتحقق من توقيع Paymob وبينشئ الأوردر لو الـ Webhook لسه ماوصلش) */
-  if (success === "true" && typeof PAYMENT_SERVER_URL !== "undefined") {
+  /* تأكيد الدفع فوراً من السيرفر (بيتحقق من توقيع Paymob وبينشئ الأوردر لو الـ Webhook لسه ماوصلش).
+     لو الإشعار لسه شغال على نفس الأوردر بنعيد المحاولة كذا مرة. */
+  function confirmPayment(attempt) {
     const all = {}; params.forEach((v, k) => { all[k] = v; });
     let pid = ""; try { pid = localStorage.getItem("sp_pending_id") || ""; } catch (e) {}
     fetch(PAYMENT_SERVER_URL + "/api/confirm-payment", {
@@ -142,11 +143,15 @@
         showOrderNumber(d.orderNumber);
         try { localStorage.removeItem("sp_pending_id"); } catch (e) {}
         loadPublic(); render();
+        return;
       }
+      if (d && (d.status === "no-pending" || d.status === "busy") && attempt < 4) { setTimeout(() => confirmPayment(attempt + 1), 2000); return; }
       if (d && (d.status === "needs-review" || d.status === "amount-mismatch")) document.getElementById("status-message").textContent = "تم استلام دفعتك وجاري مراجعة الطلب، هنتواصل معاك قريباً.";
-      if (d && !d.ok) { const t = document.getElementById("tech"); t.style.display = "block"; t.textContent = "تفاصيل فنية: " + (d.reason || d.status || d.error || "unknown"); }
+      const t = document.getElementById("tech"); t.style.display = "block";
+      t.textContent = "تفاصيل فنية: " + (d && (d.reason || d.status || d.error) || "unknown") + (d && d.debug ? " | mid=" + d.debug.mid + " | pid=" + d.debug.pid + " | id=" + d.debug.resolved : "");
     }).catch(() => {});
   }
+  if (success === "true" && typeof PAYMENT_SERVER_URL !== "undefined") confirmPayment(0);
 
   initSettings(() => {
     document.getElementById("wa-link").href = "https://wa.me/" + WHATSAPP_NUMBER;
