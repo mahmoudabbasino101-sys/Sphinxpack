@@ -5,6 +5,7 @@
 const DEFAULT_WHATSAPP_NUMBER = "201028735709"; // بصيغة دولية بدون + ، يستخدم في روابط wa.me
 let WHATSAPP_NUMBER = DEFAULT_WHATSAPP_NUMBER;
 let SOCIAL_LINKS = []; // [{key,name,url}] بتتحمل من الإعدادات
+let CONTACT_EMAIL = "", CONTACT_ADDRESS = "بشتيل، الجيزة", ADDRESS_MAP_URL = ""; // بيانات التواصل الإضافية (من إعدادات الأدمن)
 let DEPOSIT_PERCENT = 25; // نسبة العربون الافتراضية، تتغيّر من الإعدادات
 let WALLET_NUMBER = "01028735709"; // رقم فودافون كاش للتحويل اليدوي
 let INSTAPAY_NUMBER = "01028735709"; // رقم/حساب إنستاباي للتحويل اليدوي
@@ -36,6 +37,9 @@ function initSettings(callback) {
     const val = snap.val() || {};
     WHATSAPP_NUMBER = val.whatsappNumber || DEFAULT_WHATSAPP_NUMBER;
     DEPOSIT_PERCENT = val.depositPercent || 25;
+    CONTACT_EMAIL = typeof val.contactEmail === "string" ? val.contactEmail : "";
+    CONTACT_ADDRESS = typeof val.contactAddress === "string" && val.contactAddress ? val.contactAddress : "بشتيل، الجيزة";
+    ADDRESS_MAP_URL = typeof val.addressMapUrl === "string" ? val.addressMapUrl : "";
     WALLET_NUMBER = val.walletNumber || localPhone(WHATSAPP_NUMBER);
     INSTAPAY_NUMBER = val.instapayNumber || WALLET_NUMBER;
     SOCIAL_LINKS = val.socialLinks ? Object.entries(val.socialLinks).map(([key, s]) => ({ key, ...s })) : [];
