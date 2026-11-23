@@ -487,6 +487,19 @@
         </div>
 
         <div class="card">
+          <h2>بيانات التواصل الإضافية (تظهر في الصفحة الرئيسية)</h2>
+          <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px">
+            الإيميل بيظهر بس لو كتبته. العنوان بيتحوّل لرابط على خريطة جوجل تلقائيًا، أو اكتب رابط مخصص (لازم يبدأ بـ https://).
+          </p>
+          <div class="form-row two">
+            <div class="field"><label>البريد الإلكتروني (اختياري)</label><input id="contact-email-input" type="email" dir="ltr" placeholder="info@example.com"></div>
+            <div class="field"><label>العنوان</label><input id="contact-address-input" type="text" placeholder="بشتيل، الجيزة"></div>
+          </div>
+          <div class="field"><label>رابط العنوان على الخريطة (اختياري)</label><input id="contact-map-input" type="text" dir="ltr" placeholder="https://maps.app.goo.gl/..."></div>
+          <button class="btn-primary" onclick="saveContactExtra()">حفظ بيانات التواصل</button>
+        </div>
+
+        <div class="card">
           <h2>رقم التواصل (واتساب / اتصال)</h2>
           <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px">
             الرقم ده هو اللي بيستقبل الطلبات عبر واتساب، والظاهر في الموقع كله.
@@ -667,6 +680,7 @@ function showDashboard() {
   loadStaffList();
   loadCouriers();
   loadPendingPayments();
+  loadContactExtra();
 }
 function showLoginScreen() {
   document.getElementById("dashboard").classList.add("hidden");
@@ -1156,6 +1170,26 @@ function switchToView(viewName) {
   document.getElementById("view-" + viewName).classList.add("active");
   if (viewName === "accounts") renderAccountsView();
   closeSidebar();
+}
+/* بيانات التواصل الإضافية: بتتحقق من الشكل قبل الحفظ وبتتعرض في الموقع كنص عادي أو كلينك آمن */
+function saveContactExtra() {
+  const email = document.getElementById("contact-email-input").value.trim();
+  const address = document.getElementById("contact-address-input").value.trim();
+  const map = document.getElementById("contact-map-input").value.trim();
+  if (email && !/^[^\s@<>"']+@[^\s@<>"']+\.[^\s@<>"']+$/.test(email)) { showToast("الإيميل غير صحيح"); return; }
+  if (email.length > 120 || address.length > 200) { showToast("النص طويل جدًا"); return; }
+  if (map && !/^https:\/\/\S+$/.test(map)) { showToast("رابط الخريطة لازم يبدأ بـ https://"); return; }
+  db.ref("settings").update({ contactEmail: email, contactAddress: address, addressMapUrl: map })
+    .then(() => showToast("تم حفظ بيانات التواصل")).catch(showFbError);
+}
+let _contactListening = false;
+function loadContactExtra() {
+  if (_contactListening) return; _contactListening = true;
+  db.ref("settings").on("value", snap => {
+    const v = snap.val() || {};
+    const set = (id, val) => { const el = document.getElementById(id); if (el && document.activeElement !== el) el.value = val || ""; };
+    set("contact-email-input", v.contactEmail); set("contact-address-input", v.contactAddress); set("contact-map-input", v.addressMapUrl);
+  }, () => {});
 }
 function saveContactNumber() {
   const raw = document.getElementById("contact-number-input").value.trim().replace(/[^0-9]/g, "");
