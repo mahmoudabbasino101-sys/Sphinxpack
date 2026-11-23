@@ -1,5 +1,10 @@
 User-agent: *
 Disallow: /admin.html
+Disallow: /staff.html
+Disallow: /courier.html
+Disallow: /track.html
+Disallow: /thank-you.html
+Disallow: /security-test.html
 Allow: /
 
 Sitemap: https://mahmoudabbasino101-sys.github.io/Sphinxpack/sitemap.xml
