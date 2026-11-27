@@ -115,13 +115,27 @@
     const g = document.getElementById("gate-total");
     if (g) g.textContent = "إجمالي السلة: " + cartTotal(getCart()).toFixed(2) + " ج.م";
   }
+  let profileLoaded = false;
+  /* بيانات العميل المحفوظة (الاسم/الموبايل/العنوان/طريقة الدفع المفضّلة) بتتعبّى تلقائي، ومابتغطّيش على اللي اتكتب */
+  function prefillFromProfile(user) {
+    if (profileLoaded) return;
+    profileLoaded = true;
+    postToServer("/api/my-account", { action: "get" }).then(d => {
+      const p = d.profile || {};
+      const setIfEmpty = (id, v) => { const el = document.getElementById(id); if (el && v && (!el.value || (id === "c-name" && el.value === user.displayName))) el.value = v; };
+      setIfEmpty("c-name", p.name); setIfEmpty("c-phone", p.phone); setIfEmpty("c-address", p.address);
+      const sel = document.getElementById("pay-select");
+      if (p.paymentMethod && sel && [...sel.options].some(o => o.value === p.paymentMethod)) { sel.value = p.paymentMethod; sel.dispatchEvent(new Event("change")); }
+    }).catch(() => {});
+  }
   function applyAuthGate(user, ok) {
     authGate.hidden = ok;
     orderPanel.hidden = !ok;
     if (ok) {
       const n = document.getElementById("c-name");
       if (n && !n.value && user.displayName) n.value = user.displayName;
-    } else updateGateTotal();
+      prefillFromProfile(user);
+    } else { profileLoaded = false; updateGateTotal(); }
   }
   document.getElementById("gate-login").addEventListener("click", () => SPAuth.requireLogin().catch(() => {}));
   if (window.SPAuth) SPAuth.onChange(applyAuthGate); else orderPanel.hidden = false;

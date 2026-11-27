@@ -23,6 +23,7 @@
   .policy-card .note{ margin-top:26px; padding-top:16px; border-top:1px dashed var(--line); color:#6b6558; font-size:13.5px; }
   @media (max-width:600px){ .policy-card{ padding:22px 18px; font-size:14px; } }
 </style>
+<link rel="stylesheet" href="assets/customer-auth.css">
 </head>
 <body>
 
@@ -75,8 +76,10 @@
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="assets/firebase-init.js"></script>
 <script src="assets/shop.js"></script>
+<script src="assets/customer-auth.js"></script>
 <script>
   initSettings(() => initCategories(() => {
     mountHeader(null);
