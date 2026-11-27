@@ -195,6 +195,39 @@
   }
   .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:99}
   .sidebar-overlay.open{display:block}
+
+
+/* SphinxPack Dark Navy & Gold — admin panel */
+:root{
+ --sidebar-bg:#07101D;--sidebar-active:#C7A45D;--sidebar-text:#C5CEDA;--sidebar-text-active:#101A2A;
+ --page-bg:#0B1422;--card-bg:#14243A;--border:#30445D;--text-dark:#F1F4F8;--text-muted:#B9C4D2;
+ --blue:#C7A45D;--blue-hover:#E0BD72;--green-bg:#173B31;--green-text:#8FE0B0;
+ --orange-bg:#49351F;--orange-text:#F0D99E;
+}
+body{background:#0B1422!important;color:#F1F4F8!important}
+.sidebar,.sidebar-nav{background:#07101D!important;color:#E6D7B5!important}
+.sidebar-brand,.sidebar-footer{border-color:#27384D!important}
+.sidebar-brand strong,.sidebar h1,.sidebar h2{color:#F5E8C8!important}
+.sidebar-nav a,.sidebar-nav button{color:#C5CEDA!important}
+.sidebar-nav a.active,.sidebar-nav button.active,.sidebar-nav .active{background:#C7A45D!important;color:#101A2A!important}
+.main,.main-content,.content,.page-content{background:#0B1422!important;color:#F1F4F8!important}
+header,.topbar,.page-header{background:#101E31!important;color:#F5E8C8!important;border-color:#30445D!important}
+.card,.panel,.modal,.modal-content,.box,.stat-card,.table-wrap,.section-card{
+ background:#14243A!important;color:#F1F4F8!important;border-color:#30445D!important;
+}
+h1,h2,h3,h4,label,th{color:#F5E8C8}
+p,small,.muted,.hint{color:#B9C4D2}
+input,select,textarea{background:#0B1422!important;color:#F1F4F8!important;border-color:#3A506B!important}
+input::placeholder,textarea::placeholder{color:#8292A7}
+button.primary,.btn-primary,.primary-btn,.save-btn{background:#C7A45D!important;color:#101A2A!important}
+button.secondary,.btn-secondary{background:#203650!important;color:#F1F4F8!important;border-color:#3A506B!important}
+table{color:#E2E8F0}
+th,td{border-color:#30445D!important}
+tr:hover td{background:#1B2B40!important}
+.badge,.status-badge{border-color:#3A506B}
+a{color:#E0BD72}
+a:hover{color:#F5DFA8}
+
 </style>
 </head>
 <body>
@@ -487,19 +520,6 @@
         </div>
 
         <div class="card">
-          <h2>بيانات التواصل الإضافية (تظهر في الصفحة الرئيسية)</h2>
-          <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px">
-            الإيميل بيظهر بس لو كتبته. العنوان بيتحوّل لرابط على خريطة جوجل تلقائيًا، أو اكتب رابط مخصص (لازم يبدأ بـ https://).
-          </p>
-          <div class="form-row two">
-            <div class="field"><label>البريد الإلكتروني (اختياري)</label><input id="contact-email-input" type="email" dir="ltr" placeholder="info@example.com"></div>
-            <div class="field"><label>العنوان</label><input id="contact-address-input" type="text" placeholder="بشتيل، الجيزة"></div>
-          </div>
-          <div class="field"><label>رابط العنوان على الخريطة (اختياري)</label><input id="contact-map-input" type="text" dir="ltr" placeholder="https://maps.app.goo.gl/..."></div>
-          <button class="btn-primary" onclick="saveContactExtra()">حفظ بيانات التواصل</button>
-        </div>
-
-        <div class="card">
           <h2>رقم التواصل (واتساب / اتصال)</h2>
           <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px">
             الرقم ده هو اللي بيستقبل الطلبات عبر واتساب، والظاهر في الموقع كله.
@@ -680,7 +700,6 @@ function showDashboard() {
   loadStaffList();
   loadCouriers();
   loadPendingPayments();
-  loadContactExtra();
 }
 function showLoginScreen() {
   document.getElementById("dashboard").classList.add("hidden");
@@ -1170,26 +1189,6 @@ function switchToView(viewName) {
   document.getElementById("view-" + viewName).classList.add("active");
   if (viewName === "accounts") renderAccountsView();
   closeSidebar();
-}
-/* بيانات التواصل الإضافية: بتتحقق من الشكل قبل الحفظ وبتتعرض في الموقع كنص عادي أو كلينك آمن */
-function saveContactExtra() {
-  const email = document.getElementById("contact-email-input").value.trim();
-  const address = document.getElementById("contact-address-input").value.trim();
-  const map = document.getElementById("contact-map-input").value.trim();
-  if (email && !/^[^\s@<>"']+@[^\s@<>"']+\.[^\s@<>"']+$/.test(email)) { showToast("الإيميل غير صحيح"); return; }
-  if (email.length > 120 || address.length > 200) { showToast("النص طويل جدًا"); return; }
-  if (map && !/^https:\/\/\S+$/.test(map)) { showToast("رابط الخريطة لازم يبدأ بـ https://"); return; }
-  db.ref("settings").update({ contactEmail: email, contactAddress: address, addressMapUrl: map })
-    .then(() => showToast("تم حفظ بيانات التواصل")).catch(showFbError);
-}
-let _contactListening = false;
-function loadContactExtra() {
-  if (_contactListening) return; _contactListening = true;
-  db.ref("settings").on("value", snap => {
-    const v = snap.val() || {};
-    const set = (id, val) => { const el = document.getElementById(id); if (el && document.activeElement !== el) el.value = val || ""; };
-    set("contact-email-input", v.contactEmail); set("contact-address-input", v.contactAddress); set("contact-map-input", v.addressMapUrl);
-  }, () => {});
 }
 function saveContactNumber() {
   const raw = document.getElementById("contact-number-input").value.trim().replace(/[^0-9]/g, "");
