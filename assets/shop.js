@@ -4,6 +4,9 @@
 
 const DEFAULT_WHATSAPP_NUMBER = "201028735709"; // بصيغة دولية بدون + ، يستخدم في روابط wa.me
 let WHATSAPP_NUMBER = DEFAULT_WHATSAPP_NUMBER;
+/* ✏️ إيميل التواصل: اكتبه بين العلامتين (لو فاضي مش هيظهر في أي مكان) */
+const SITE_CONTACT = { email: "" };
+let SETTINGS_EMAIL = "";
 let SOCIAL_LINKS = []; // [{key,name,url}] بتتحمل من الإعدادات
 let DEPOSIT_PERCENT = 25; // نسبة العربون الافتراضية، تتغيّر من الإعدادات
 let WALLET_NUMBER = "01028735709"; // رقم فودافون كاش للتحويل اليدوي
@@ -38,6 +41,7 @@ function initSettings(callback) {
     DEPOSIT_PERCENT = val.depositPercent || 25;
     WALLET_NUMBER = val.walletNumber || localPhone(WHATSAPP_NUMBER);
     INSTAPAY_NUMBER = val.instapayNumber || WALLET_NUMBER;
+    SETTINGS_EMAIL = val.contactEmail || "";
     SOCIAL_LINKS = val.socialLinks ? Object.entries(val.socialLinks).map(([key, s]) => ({ key, ...s })) : [];
     callback();
   });
@@ -461,6 +465,23 @@ function mountHeader(activeSlug) {
   if (window.SPAuth) SPAuth.mount();
 }
 
+/* ---------- روابط التواصل (فيس بوك / إنستجرام / إيميل) ---------- */
+function contactEmail() {
+  const e = String(SITE_CONTACT.email || SETTINGS_EMAIL || "").trim();
+  return /^[^\s@<>"']+@[^\s@<>"']+\.[^\s@<>"']+$/.test(e) ? e : "";
+}
+function socialOf(kind) {
+  const re = kind === "facebook" ? /facebook|fb\.com|fb\.me|فيس/i : /instagram|instagr|انستجرام|انستقرام|إنستجرام|إنستقرام|انستا/i;
+  const s = (SOCIAL_LINKS || []).find(x => re.test([x.key, x.name, x.url].join(" ")));
+  const u = s ? safeUrl(s.url) : "";
+  return u && u !== "#" ? u : "";
+}
+const SOC_ICONS = {
+  facebook: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 8h2.5V4.5H14A3.5 3.5 0 0 0 10.5 8v2H8v3.5h2.5V21H14v-7.5h2.5L17 10h-3V8.5c0-.3.2-.5.5-.5Z"/></svg>',
+  instagram: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r="1" fill="currentColor" stroke="none"/></svg>',
+  email: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="m3.5 7 8.5 6 8.5-6"/></svg>',
+};
+
 /* ---------- القائمة الجانبية (موبايل) ---------- */
 function toggleMenu(open) {
   document.getElementById("menu-overlay")?.classList.toggle("open", open);
@@ -494,6 +515,15 @@ function mountMenu() {
       <a href="policy.html">سياسة الاستبدال والاسترجاع</a>
       <a href="privacy-policy.html">سياسة الخصوصية</a>
     </div>
+    ${(() => {
+      const em = contactEmail(), fb = socialOf("facebook"), ig = socialOf("instagram");
+      if (!em && !fb && !ig) return "";
+      return `<div class="menu-sec"><h5>تواصل معنا</h5>
+        ${em ? `<a class="menu-ic" href="mailto:${escHtml(em)}">${SOC_ICONS.email}<span dir="ltr">${escHtml(em)}</span></a>` : ""}
+        ${fb ? `<a class="menu-ic" href="${escHtml(fb)}" target="_blank" rel="noopener">${SOC_ICONS.facebook}<span>فيس بوك</span></a>` : ""}
+        ${ig ? `<a class="menu-ic" href="${escHtml(ig)}" target="_blank" rel="noopener">${SOC_ICONS.instagram}<span>إنستجرام</span></a>` : ""}
+      </div>`;
+    })()}
     <a class="menu-wa" href="https://wa.me/${WHATSAPP_NUMBER}" target="_blank" rel="noopener">راسلنا على واتساب</a>`;
 }
 
