@@ -122,30 +122,4 @@
 .spa-google:disabled{opacity:.6;cursor:progress}
 .spa-google:focus-visible{outline:2px solid var(--ink,#211D18);outline-offset:2px}
 
-
-/* SphinxPack dark navy & gold customer authentication theme */
-.acct-btn{color:#E9D8B2;border-color:#C7A45D}
-.acct-btn:hover{background:#C7A45D;color:#101A2A}
-.acct-avatar{background:#C7A45D;color:#101A2A}
-.acct-menu{background:#14243A;border-color:#344A64;box-shadow:6px 6px 0 #050D18}
-.acct-mail{color:#B9C4D2;border-color:#344A64}
-.acct-menu button,.acct-menu a.acct-link{color:#F1F4F8}
-.acct-menu button:hover,.acct-menu a.acct-link:hover{background:#203650}
-.auth-gate{background:#14243A;color:#F1F4F8;border-color:#344A64;box-shadow:6px 6px 0 #050D18}
-.auth-gate p{color:#B9C4D2}
-.spa-overlay{background:rgba(0,0,0,.78)}
-.spa-card{background:#101E31;color:#F1F4F8;border:1px solid #C7A45D;box-shadow:8px 8px 0 #050D18}
-.spa-card h2{color:#F5E8C8}
-.spa-sub{color:#B9C4D2}
-.spa-x{color:#F1F4F8}
-.spa-x:hover{background:#263B55}
-.spa-field input{background:#0B1422;color:#F1F4F8;border-color:#3A506B}
-.spa-field input::placeholder{color:#8292A7}
-.spa-field input:focus{border-color:#C7A45D;box-shadow:3px 3px 0 #8E6C32}
-.spa-btn{background:#C7A45D;color:#101A2A;box-shadow:4px 4px 0 #050D18}
-.spa-btn:hover{background:#E0BD72;box-shadow:6px 6px 0 #050D18}
-.spa-links button{color:#E8D4A7}
-.spa-or{color:#B9C4D2}
-.spa-or::before,.spa-or::after{background:#344A64}
-.spa-google{background:#F8F9FA;color:#202124;border-color:#DADCE0}
-.spa-google:hover{background:#E9EDF2}
+.spa-gwrap{display:flex;justify-content:center;align-items:center;min-height:44px}
