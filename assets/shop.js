@@ -421,31 +421,122 @@ function renderCatNav(activeSlug) {
   </ul></nav>`;
 }
 
+const UI_ICONS = {
+  menu: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>',
+  cart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h3l2.6 12.2a2 2 0 0 0 2 1.6h8.6a2 2 0 0 0 2-1.5L21 7H6"/><circle cx="10" cy="20.5" r="1.5"/><circle cx="18" cy="20.5" r="1.5"/></svg>',
+  home: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.8 2.5 11.2a1 1 0 0 0 .7 1.8H5v7.2a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V13h1.8a1 1 0 0 0 .7-1.8L12 2.8Z"/></svg>',
+  grid: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="1.6"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.6"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.6"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.6"/></svg>',
+  search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m20 20-4.9-4.9"/></svg>',
+  user: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="8" r="4.2"/><path d="M4 21c.6-4.3 4-6.5 8-6.5s7.4 2.2 8 6.5"/></svg>',
+};
+
 function mountHeader(activeSlug) {
   const el = document.getElementById("site-header");
   if (!el) return;
+  const ph = localPhone(WHATSAPP_NUMBER);
   el.innerHTML = `
     <div class="topbar"><div class="wrap">
-      <a href="https://wa.me/${WHATSAPP_NUMBER}" target="_blank">واتساب: ${localPhone(WHATSAPP_NUMBER)}</a>
-      <a href="tel:${localPhone(WHATSAPP_NUMBER)}">اتصل بنا: ${localPhone(WHATSAPP_NUMBER)}</a>
+      <a href="https://wa.me/${WHATSAPP_NUMBER}" target="_blank" rel="noopener">واتساب: ${ph}</a>
+      <a href="tel:${ph}">اتصل بنا: ${ph}</a>
     </div></div>
-    <div class="nav-row wrap">
-      <a href="index.html" class="logo">
-        <span class="mark" style="background:transparent"><img src="assets/images/sphinx-logo.png" alt="SphinxPack" style="width:42px;height:42px;object-fit:contain"></span>
-        <span class="brand">SphinxPack<small>مستلزمات التغليف والضيافة</small></span>
+    <div class="hdr-in">
+      <button class="hdr-btn hdr-menu" id="open-menu-btn" aria-label="القائمة">${UI_ICONS.menu}</button>
+      <a href="index.html" class="brand" aria-label="SphinxPack">
+        <img src="assets/images/sphinx-logo-gold.png" alt="">
+        <span class="brand-txt"><b>SphinxPack</b><small>Packaging Supplies</small></span>
       </a>
-      <span class="nav-actions"><span id="acct-slot"></span>
-      <button class="cart-btn" id="open-cart-btn">
-        ${ICONS.bag.replace("currentColor","currentColor")}
-        <span>السلة</span>
-        <span class="count" data-cart-count>0</span>
-      </button></span>
+      <nav class="hdr-links"><a href="index.html">الرئيسية</a><a href="index.html#categories">الأقسام</a><a href="index.html#contact">تواصل معنا</a></nav>
+      <span class="hdr-actions"><span id="acct-slot"></span>
+        <button class="hdr-btn hdr-cart" id="open-cart-btn" aria-label="سلة التسوق">${UI_ICONS.cart}<span class="count" data-cart-count>0</span></button>
+      </span>
     </div>
     ${renderCatNav(activeSlug)}
   `;
   document.getElementById("open-cart-btn").addEventListener("click", openDrawer);
+  document.getElementById("open-menu-btn").addEventListener("click", () => toggleMenu(true));
+  mountMenu();
+  mountBottomNav();
   updateCartCount();
   if (window.SPAuth) SPAuth.mount();
+}
+
+/* ---------- القائمة الجانبية (موبايل) ---------- */
+function toggleMenu(open) {
+  document.getElementById("menu-overlay")?.classList.toggle("open", open);
+  document.getElementById("menu-panel")?.classList.toggle("open", open);
+}
+function mountMenu() {
+  let panel = document.getElementById("menu-panel");
+  if (!panel) {
+    const ov = document.createElement("div");
+    ov.className = "menu-overlay"; ov.id = "menu-overlay";
+    panel = document.createElement("aside");
+    panel.className = "menu-panel"; panel.id = "menu-panel";
+    document.body.append(ov, panel);
+    ov.addEventListener("click", () => toggleMenu(false));
+    panel.addEventListener("click", e => { if (e.target.closest("a,.menu-close")) toggleMenu(false); });
+  }
+  panel.innerHTML = `
+    <div class="menu-top">
+      <a href="index.html" class="brand"><img src="assets/images/sphinx-logo-gold.png" alt=""><span class="brand-txt"><b>SphinxPack</b></span></a>
+      <button class="menu-close" aria-label="إغلاق">×</button>
+    </div>
+    <div class="menu-sec"><h5>التسوق</h5>
+      <a href="index.html">الرئيسية</a>
+      <a href="account.html">حسابي وطلباتي</a>
+    </div>
+    <div class="menu-sec"><h5>الأقسام</h5>
+      ${CATEGORIES.map(c => `<a href="category.html?cat=${encodeURIComponent(c.slug)}">${escHtml(c.name)}</a>`).join("")}
+    </div>
+    <div class="menu-sec"><h5>معلومات</h5>
+      <a href="shipping-policy.html">سياسة الشحن والتوصيل</a>
+      <a href="policy.html">سياسة الاستبدال والاسترجاع</a>
+      <a href="privacy-policy.html">سياسة الخصوصية</a>
+    </div>
+    <a class="menu-wa" href="https://wa.me/${WHATSAPP_NUMBER}" target="_blank" rel="noopener">راسلنا على واتساب</a>`;
+}
+
+/* ---------- شريط التنقل السفلي + نافذة البحث ---------- */
+function mountBottomNav() {
+  if (document.getElementById("bnav")) return;
+  const path = location.pathname.split("/").pop() || "index.html";
+  const act = k => ({ home: path === "index.html" || path === "", acct: path === "account.html", cart: path === "cart.html", cats: path === "category.html" })[k] ? "is-active" : "";
+  const nav = document.createElement("nav");
+  nav.className = "bnav"; nav.id = "bnav";
+  nav.innerHTML = `
+    <a href="index.html" class="${act("home")}">${UI_ICONS.home}<span>الرئيسية</span></a>
+    <a href="index.html#categories" class="${act("cats")}">${UI_ICONS.grid}<span>الأقسام</span></a>
+    <button type="button" data-bn="search">${UI_ICONS.search}<span>بحث</span></button>
+    <button type="button" data-bn="acct" class="${act("acct")}">${UI_ICONS.user}<span>حسابي</span></button>
+    <button type="button" data-bn="cart" class="${act("cart")}">${UI_ICONS.cart}<span>سلة التسوق</span><b class="badge" data-cart-count>0</b></button>`;
+  document.body.appendChild(nav);
+  document.body.classList.add("has-bnav");
+
+  const sheet = document.createElement("div");
+  sheet.className = "search-sheet"; sheet.id = "search-sheet";
+  sheet.innerHTML = `<form role="search"><input type="search" placeholder="ابحث عن منتج... (مثال: كوب 12 أوز)" aria-label="بحث"><button type="submit">بحث</button></form>`;
+  document.body.appendChild(sheet);
+  sheet.addEventListener("click", e => { if (e.target === sheet) sheet.classList.remove("open"); });
+  sheet.querySelector("form").addEventListener("submit", e => {
+    e.preventDefault();
+    const q = sheet.querySelector("input").value.trim();
+    if (q) location.href = "category.html?search=" + encodeURIComponent(q);
+  });
+  document.addEventListener("keydown", e => { if (e.key === "Escape") { sheet.classList.remove("open"); toggleMenu(false); } });
+
+  nav.addEventListener("click", e => {
+    const b = e.target.closest("[data-bn]");
+    if (!b) return;
+    const k = b.dataset.bn;
+    if (k === "cart") openDrawer();
+    else if (k === "search") { sheet.classList.add("open"); sheet.querySelector("input").focus(); }
+    else if (k === "acct") {
+      if (window.SPAuth && SPAuth.isLoggedIn()) location.href = "account.html";
+      else if (window.SPAuth) SPAuth.open("login");
+      else location.href = "account.html";
+    }
+  });
+  updateCartCount();
 }
 
 function mountFooter() {
@@ -455,7 +546,7 @@ function mountFooter() {
     <footer><div class="wrap">
       <div>
         <h4>SphinxPack</h4>
-        <p style="max-width:32ch;font-size:13.5px;color:#C9D4DD">
+        <p style="max-width:32ch;font-size:13.5px;color:var(--muted)">
           مستلزمات التغليف والضيافة بالجملة — أكواب، علب وجبات، فويل، أدوات مائدة، ومستلزمات طبية.
         </p>
       </div>
