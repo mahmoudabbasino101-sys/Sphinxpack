@@ -27,7 +27,7 @@
 <main class="hp">
   <section class="hp-hero" id="hero" aria-roledescription="carousel" aria-label="العروض">
     <div class="hp-slide is-active">
-      <div class="hp-art" aria-hidden="true"></div>
+      <img class="hp-art" src="assets/images/hero-products.jpg" alt="" onerror="this.style.display='none'">
       <div class="hp-copy">
         <h1><span>كل ما تحتاجه من</span><em>مستلزمات التعبئة والتغليف</em></h1>
         <p class="hp-tag">جودة عالية .. سعر مناسب .. خدمة مميزة</p><br>
@@ -35,7 +35,7 @@
       </div>
     </div>
     <div class="hp-slide">
-      <div class="hp-art" aria-hidden="true"></div>
+      <img class="hp-art" src="assets/images/hero-products.jpg" alt="" onerror="this.style.display='none'">
       <div class="hp-copy">
         <h1><span>أسعار جملة حقيقية</span><em>من المصنع لباب محلك</em></h1>
         <p class="hp-tag">أكواب .. علب .. فويل .. أدوات مائدة</p><br>
@@ -43,7 +43,7 @@
       </div>
     </div>
     <div class="hp-slide">
-      <div class="hp-art" aria-hidden="true"></div>
+      <img class="hp-art" src="assets/images/hero-products.jpg" alt="" onerror="this.style.display='none'">
       <div class="hp-copy">
         <h1><span>محتاج عرض سعر؟</span><em>كلمنا وهنرد عليك فورًا</em></h1>
         <p class="hp-tag">عينات قبل الطلب .. توصيل في الميعاد</p><br>
@@ -152,10 +152,19 @@
     "plastic-cups": "assets/images/cat-plastic.jpg",
     "tableware": "assets/images/cat-tableware.jpg",
   };
+  function photoByName(n) {
+    n = String(n || "");
+    if (/فويل|ألوميني|المني|ألمني|الومني/.test(n)) return CAT_PHOTOS["foil"];
+    if (/مائد|ملاعق|شوك|أطباق|اطباق|طعام/.test(n) && !/علب|عبوات/.test(n)) return CAT_PHOTOS["tableware"];
+    if (/بلاستيك/.test(n)) return CAT_PHOTOS["plastic-cups"];
+    if (/ورق|كوب|اكواب|أكواب/.test(n)) return CAT_PHOTOS["paper-cups"];
+    if (/علب|عبوات|وجبات/.test(n)) return CAT_PHOTOS["meal-boxes"];
+    return "";
+  }
   function renderCategories() {
     const grid = document.getElementById("hp-cats");
     grid.innerHTML = CATEGORIES.map(c => {
-      const img = c.image ? safeImg(c.image) : (CAT_PHOTOS[c.slug] || "");
+      const img = c.image ? safeImg(c.image) : (CAT_PHOTOS[c.slug] || photoByName(c.name));
       const pic = img ? `<img src="${escHtml(img)}" alt="" loading="lazy">` : (ICONS[c.icon] || ICONS.box);
       return `<a class="hp-cat" href="category.html?cat=${encodeURIComponent(c.slug)}"><span class="pic">${pic}</span><span>${escHtml(c.name)}</span></a>`;
     }).join("");
