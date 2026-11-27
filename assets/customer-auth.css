@@ -1,0 +1,120 @@
+/* =========================================================
+   SphinxPack — واجهة حساب العميل (نافذة الدخول + زر الهيدر)
+   بتشتغل في الصفحة الرئيسية وباقي الصفحات (متغيرات الألوان بتاخد قيمة احتياطية)
+   ========================================================= */
+.spa-lock{overflow:hidden}
+
+/* ---------- زر الحساب في الهيدر ---------- */
+#acct-slot{display:inline-flex;align-items:center}
+.acct-wrap{position:relative}
+.acct-btn{
+  display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 14px;
+  background:transparent;color:var(--ink,#211D18);font:inherit;font-weight:700;font-size:14px;
+  border:1.5px solid var(--ink,#211D18);border-radius:2px;cursor:pointer;
+  transition:background .2s,color .2s,transform .15s;
+}
+.acct-btn:hover{background:var(--ink,#211D18);color:var(--paper,#EFECE4)}
+.acct-btn:active{transform:translateY(1px)}
+.acct-btn:focus-visible{outline:2px solid var(--signal,var(--amber,#E1531B));outline-offset:2px}
+.acct-btn.is-in{padding:0 12px 0 14px}
+.acct-avatar{
+  width:24px;height:24px;border-radius:50%;display:grid;place-items:center;
+  background:var(--signal,var(--amber,#E1531B));color:#fff;font-size:12px;font-weight:800;line-height:1;
+}
+.acct-label{max-width:9ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acct-menu{
+  position:absolute;top:calc(100% + 8px);inset-inline-end:0;min-width:210px;z-index:80;
+  background:var(--paper,#EFECE4);border:1px solid var(--line,#D4CDBD);border-radius:3px;
+  box-shadow:6px 6px 0 var(--ink,#211D18);padding:6px;display:flex;flex-direction:column;
+  animation:spaPop .16s ease-out;
+}
+.acct-menu[hidden]{display:none}
+.acct-mail{padding:8px 10px;font-size:12.5px;color:var(--ink-soft,#4B453C);border-bottom:1px solid var(--line,#D4CDBD);margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;text-align:right}
+.acct-menu button{
+  background:none;border:0;text-align:right;padding:9px 10px;font:inherit;font-size:14px;font-weight:600;
+  color:var(--ink,#211D18);cursor:pointer;border-radius:2px;
+}
+.acct-menu button:hover{background:var(--paper-2,#E4DFD3)}
+@media (max-width:560px){
+  .acct-label{display:none}
+  .acct-btn{padding:0 11px}
+  .acct-btn.is-in{padding:0 8px}
+}
+
+/* ---------- بوابة الدخول في صفحة السلة ---------- */
+.auth-gate{
+  background:var(--paper,#EFECE4);border:1px solid var(--line,#D4CDBD);border-radius:3px;
+  padding:28px 24px;margin-top:0;text-align:center;box-shadow:6px 6px 0 var(--ink,#211D18);
+}
+.auth-gate[hidden]{display:none}
+.auth-gate h3{margin:0 0 6px;font-size:20px}
+.auth-gate p{margin:0 auto 18px;max-width:40ch;color:var(--ink-soft,#4B453C);font-size:14.5px}
+.auth-gate .gate-total{font-weight:800;margin-bottom:16px}
+
+/* ---------- النافذة ---------- */
+.spa-overlay{
+  position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;padding:16px;
+  background:rgba(33,29,24,.58);opacity:0;transition:opacity .2s ease;
+}
+.spa-overlay[hidden]{display:none}
+.spa-overlay.is-open{opacity:1}
+.spa-card{
+  position:relative;width:100%;max-width:400px;max-height:92vh;overflow-y:auto;
+  background:var(--paper,#EFECE4);color:var(--ink,#211D18);
+  border:2px solid var(--ink,#211D18);border-radius:3px;box-shadow:8px 8px 0 var(--ink,#211D18);
+  padding:30px 26px 24px;text-align:right;outline:none;
+  transform:translateY(14px) scale(.98);transition:transform .25s cubic-bezier(.2,.8,.2,1);
+}
+.spa-overlay.is-open .spa-card{transform:none}
+.spa-card h2{font-family:'Tajawal','Cairo',sans-serif;font-size:24px;font-weight:900;margin:0 0 6px}
+.spa-sub{margin:0 0 20px;font-size:14px;color:var(--ink-soft,#4B453C);line-height:1.8}
+.spa-x{
+  position:absolute;top:10px;inset-inline-end:10px;width:34px;height:34px;border:0;background:transparent;
+  font-size:16px;cursor:pointer;color:var(--ink,#211D18);border-radius:50%;
+}
+.spa-x:hover{background:var(--paper-2,#E4DFD3)}
+.spa-field{display:block;margin-bottom:14px}
+.spa-field span{display:block;font-size:13px;font-weight:700;margin-bottom:5px}
+.spa-field input{
+  width:100%;height:46px;padding:0 12px;font:inherit;font-size:15px;color:var(--ink,#211D18);
+  background:#fff;border:1.5px solid var(--line,#D4CDBD);border-radius:2px;transition:border-color .15s,box-shadow .15s;
+}
+.spa-field input:focus{outline:none;border-color:var(--ink,#211D18);box-shadow:3px 3px 0 var(--signal,var(--amber,#E1531B))}
+.spa-btn{
+  width:100%;height:48px;margin-top:4px;border:2px solid transparent;border-radius:2px;cursor:pointer;
+  background:var(--signal,var(--amber,#E1531B));color:#fff;font:inherit;font-weight:800;font-size:15px;
+  box-shadow:4px 4px 0 var(--ink,#211D18);transition:transform .15s,box-shadow .15s,opacity .2s;
+}
+.spa-btn:hover{transform:translateY(-2px);box-shadow:6px 6px 0 var(--ink,#211D18)}
+.spa-btn:active{transform:translateY(1px);box-shadow:2px 2px 0 var(--ink,#211D18)}
+.spa-btn:disabled{opacity:.6;cursor:progress;transform:none}
+.spa-btn:focus-visible,.spa-links button:focus-visible,.spa-x:focus-visible{outline:2px solid var(--ink,#211D18);outline-offset:2px}
+.spa-links{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 14px;margin-top:18px}
+.spa-links button{
+  background:none;border:0;padding:4px 0;font:inherit;font-size:13.5px;font-weight:700;cursor:pointer;
+  color:var(--ink,#211D18);text-decoration:underline;text-underline-offset:3px;
+}
+.spa-links button:disabled{opacity:.55;cursor:default;text-decoration:none}
+.spa-msg{min-height:1.4em;margin:14px 0 0;font-size:13.5px;font-weight:700;line-height:1.7}
+.spa-msg.err{color:var(--danger,#C0392B)}
+.spa-msg.ok{color:var(--success,#2E7D4F)}
+
+@keyframes spaPop{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){
+  .spa-overlay,.spa-card,.acct-menu{transition:none;animation:none}
+}
+
+.panel[hidden]{display:none !important}
+
+/* ---------- الدخول بحساب جوجل ---------- */
+.spa-or{display:flex;align-items:center;gap:12px;margin:16px 0 12px;color:var(--ink-soft,#4B453C);font-size:13px}
+.spa-or::before,.spa-or::after{content:"";flex:1;height:1px;background:var(--line,#D4CDBD)}
+.spa-google{
+  width:100%;height:46px;display:flex;align-items:center;justify-content:center;gap:10px;
+  background:#fff;color:var(--ink,#211D18);font:inherit;font-weight:700;font-size:14.5px;
+  border:1.5px solid var(--ink,#211D18);border-radius:2px;cursor:pointer;transition:background .15s,transform .15s;
+}
+.spa-google:hover{background:var(--paper-2,#E4DFD3)}
+.spa-google:active{transform:translateY(1px)}
+.spa-google:disabled{opacity:.6;cursor:progress}
+.spa-google:focus-visible{outline:2px solid var(--ink,#211D18);outline-offset:2px}
