@@ -14,720 +14,94 @@
 <link rel="icon" href="assets/images/sphinx-logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet">
-<style>
-  :root{
-    --paper:#EFECE4;
-    --paper-2:#E4DFD3;
-    --ink:#211D18;
-    --ink-soft:#4B453C;
-    --kraft:#A9784E;
-    --kraft-dark:#7C562F;
-    --signal:#E1531B;
-    --signal-dark:#B84015;
-    --foil-1:#B7BEC3;
-    --foil-2:#7E858B;
-    --foil-3:#EDEFF0;
-    --line:#D4CDBD;
-    --radius:2px;
-  }
-  *{box-sizing:border-box; margin:0; padding:0;}
-  html{scroll-behavior:smooth;}
-  body{
-    background:var(--paper);
-    color:var(--ink);
-    font-family:'Cairo', sans-serif;
-    line-height:1.7;
-    overflow-x:hidden;
-  }
-  h1,h2,h3,.stamp,.eyebrow{font-family:'Tajawal', sans-serif;}
-  img,svg{display:block;}
-  a{color:inherit; text-decoration:none;}
-  .wrap{max-width:1120px; margin:0 auto; padding:0 24px;}
-  ::selection{background:var(--signal); color:#fff;}
-
-  @media (prefers-reduced-motion: reduce){
-    *{animation-duration:0.01ms !important; transition-duration:0.01ms !important;}
-  }
-
-  /* ---------- Header ---------- */
-  header{
-    position:sticky; top:0; z-index:50;
-    background:rgba(239,236,228,0.92);
-    backdrop-filter:blur(6px);
-    border-bottom:1px solid var(--line);
-  }
-  .nav{
-    display:flex; align-items:center; justify-content:space-between;
-    padding:16px 24px; max-width:1120px; margin:0 auto;
-  }
-  .logo{
-    font-weight:900; font-size:22px; letter-spacing:0.5px;
-    display:flex; align-items:center; gap:11px;
-  }
-  .logo-mark{
-    width:38px; height:38px; background:var(--ink); border-radius:8px;
-    display:flex; align-items:center; justify-content:center;
-    color:var(--paper); flex-shrink:0;
-  }
-  .logo-text{display:flex; flex-direction:column; line-height:1.15;}
-  .logo-text strong{font-size:19px; font-weight:900;}
-  .logo-text em{font-style:normal; font-size:10px; font-weight:700; letter-spacing:2.5px; color:var(--kraft-dark);}
-  .nav-call{
-    width:40px; height:40px; border:2px solid var(--ink); border-radius:50%;
-    display:flex; align-items:center; justify-content:center; color:var(--ink);
-    transition:background .2s, color .2s; flex-shrink:0;
-  }
-  .nav-call:hover{background:var(--ink); color:var(--paper);}
-  @media (max-width:480px){.nav-call{display:none;}}
-  .nav-links{display:flex; gap:28px; font-weight:600; font-size:15px;}
-  .nav-links a{opacity:0.8; transition:opacity .2s;}
-  .nav-links a:hover{opacity:1;}
-  .nav-cta{
-    background:var(--ink); color:var(--paper); padding:10px 20px;
-    font-weight:700; font-size:14px; border-radius:2px;
-    display:flex; align-items:center; gap:8px;
-  }
-  .nav-toggle{display:none; flex-direction:column; gap:5px; cursor:pointer; background:none; border:none;}
-  .nav-toggle span{width:24px; height:2px; background:var(--ink);}
-
-  @media (max-width:820px){
-    .nav-links{
-      display:none; position:absolute; top:100%; right:0; left:0;
-      background:var(--paper); border-bottom:1px solid var(--line);
-      flex-direction:column; gap:0; padding:8px 24px 18px;
-    }
-    .nav-links.mobile-open{display:flex;}
-    .nav-links a{padding:12px 0; border-top:1px solid var(--line); opacity:1;}
-    .nav-links a:first-child{border-top:none;}
-    .nav-toggle{display:flex;}
-    header{position:sticky;}
-    .nav{position:relative;}
-  }
-
-  /* ---------- Hero ---------- */
-  .hero{
-    position:relative; padding:72px 0 0;
-    border-bottom:1px solid var(--line);
-  }
-  .hero-grid{
-    display:grid; grid-template-columns:1.15fr 0.85fr; gap:40px; align-items:center;
-    padding-bottom:56px;
-  }
-  .eyebrow{
-    display:inline-flex; align-items:center; gap:10px;
-    font-size:13px; font-weight:700; letter-spacing:1.5px;
-    color:var(--kraft-dark); margin-bottom:20px;
-  }
-  .eyebrow::before{content:""; width:26px; height:2px; background:var(--signal);}
-  .hero h1{
-    font-size:clamp(34px, 5vw, 58px);
-    font-weight:900; line-height:1.15; letter-spacing:-0.5px;
-    margin-bottom:22px;
-  }
-  .hero h1 em{
-    font-style:normal; color:var(--signal); position:relative;
-  }
-  .hero p{
-    font-size:18px; color:var(--ink-soft); max-width:480px; margin-bottom:34px;
-  }
-  .hero-ctas{display:flex; gap:14px; flex-wrap:wrap;}
-  .btn{
-    padding:15px 28px; font-weight:700; font-size:15px; border-radius:2px;
-    display:inline-flex; align-items:center; gap:10px; transition:transform .15s, box-shadow .15s;
-    border:2px solid transparent;
-  }
-  .btn:hover{transform:translateY(-2px);}
-  .btn-primary{background:var(--signal); color:#fff; box-shadow:4px 4px 0 var(--ink);}
-  .btn-primary:hover{box-shadow:6px 6px 0 var(--ink);}
-  .btn-outline{border-color:var(--ink); color:var(--ink);}
-  .btn-outline:hover{background:var(--ink); color:var(--paper);}
-
-  /* Hero logo panel */
-  .hero-logo-panel{
-    position:relative; aspect-ratio:1/1.05; border-radius:14px; overflow:hidden;
-    background:var(--ink);
-    box-shadow:0 24px 50px -20px rgba(30,26,20,0.35);
-    display:flex; align-items:center; justify-content:center;
-  }
-
-  .hero-strip{
-    display:flex; flex-wrap:wrap; gap:0; border-top:1px solid var(--line);
-  }
-  .hero-strip .item{
-    flex:1 1 200px; padding:20px 24px; border-left:1px solid var(--line);
-    display:flex; align-items:center; gap:12px; font-weight:700; font-size:14px;
-  }
-  .hero-strip .item:first-child{border-right:1px solid var(--line);}
-  .dot{width:8px; height:8px; border-radius:50%; background:var(--signal); flex-shrink:0;}
-
-  @media (max-width:860px){
-    .hero-grid{grid-template-columns:1fr;}
-    .hero-logo-panel{aspect-ratio:16/10; order:-1;}
-  }
-
-  /* ---------- Section shared ---------- */
-  section{padding:88px 0;}
-  .section-head{max-width:640px; margin-bottom:52px;}
-  .section-head h2{font-size:clamp(26px,3.4vw,38px); font-weight:900; margin-bottom:14px;}
-  .section-head p{color:var(--ink-soft); font-size:16.5px;}
-  .num{font-family:'Tajawal',sans-serif; font-weight:900; color:var(--kraft); font-size:14px; letter-spacing:2px;}
-
-  /* ---------- Trust / value props ---------- */
-  .value-grid{
-    display:grid; grid-template-columns:repeat(4,1fr); gap:1px;
-    background:var(--line); border:1px solid var(--line);
-  }
-  .value-card{background:var(--paper); padding:32px 26px; transition:box-shadow .25s, transform .25s;}
-  .value-card:hover{box-shadow:0 14px 30px -18px rgba(33,29,24,0.35); transform:translateY(-2px);}
-  .value-card .icon{width:40px; height:40px; margin-bottom:18px; color:var(--signal);}
-  .value-card h3{font-size:17px; font-weight:800; margin-bottom:8px;}
-  .value-card p{font-size:14.5px; color:var(--ink-soft);}
-  @media (max-width:900px){.value-grid{grid-template-columns:1fr 1fr;}}
-  @media (max-width:560px){.value-grid{grid-template-columns:1fr;}}
-
-  /* ---------- Products ---------- */
-  .products{background:var(--ink); color:var(--paper);}
-  .products .section-head p{color:#C9C3B6;}
-  .products .num{color:var(--signal);}
-  .product-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:18px;}
-  .product-card{
-    display:block; background:#2A251E; border:1px solid #3A342A; border-radius:3px;
-    overflow:hidden; transition:border-color .2s, transform .2s;
-  }
-  .product-card:hover{border-color:var(--signal); transform:translateY(-3px);}
-  .product-card:hover .card-link .arrow{transform:translateX(-4px);}
-  .product-card:hover .card-media svg{transform:scale(1.08);}
-  .card-media{
-    height:140px; display:flex; align-items:center; justify-content:center; position:relative;
-    background:repeating-linear-gradient(115deg, var(--foil-1) 0px, var(--foil-3) 12px, var(--foil-2) 26px, var(--foil-1) 40px);
-  }
-  .card-media::after{
-    content:""; position:absolute; inset:0;
-    background:linear-gradient(160deg, rgba(255,255,255,0.35), transparent 40%, rgba(0,0,0,0.15));
-  }
-  .card-media svg{
-    width:58px; height:58px; color:var(--ink); position:relative; z-index:2;
-    transition:transform .25s;
-  }
-  .card-body{padding:26px 30px 30px;}
-  .product-card h3{font-size:20px; font-weight:800; margin-bottom:10px;}
-  .product-card p{color:#B7B0A2; font-size:14.5px; margin-bottom:18px;}
-  .product-card ul{list-style:none; font-size:13.5px; color:#D8D2C4;}
-  .product-card li{padding:5px 0; border-top:1px solid #3A342A; display:flex; justify-content:space-between;}
-  .product-card li:first-child{border-top:none;}
-  .card-link{
-    display:flex; align-items:center; gap:8px; margin-top:20px; padding-top:16px;
-    border-top:1px solid #3A342A; font-size:13.5px; font-weight:700; color:var(--signal);
-  }
-  .card-link .arrow{transition:transform .2s; display:inline-block;}
-  @media (max-width:700px){.product-grid{grid-template-columns:1fr;}}
-
-  /* ---------- Process ---------- */
-  .process-list{display:flex; flex-direction:column;}
-  .process-row{
-    display:grid; grid-template-columns:90px 1fr; gap:24px; padding:26px 0;
-    border-top:1px solid var(--line); align-items:baseline;
-  }
-  .process-row:last-child{border-bottom:1px solid var(--line);}
-  .process-row h3{font-size:19px; font-weight:800; margin-bottom:6px;}
-  .process-row p{color:var(--ink-soft); font-size:15px; max-width:520px;}
-
-  /* ---------- Contact ---------- */
-  .contact{background:var(--paper-2); border-top:1px solid var(--line); border-bottom:1px solid var(--line);}
-  .contact-grid{display:grid; grid-template-columns:1fr 1fr; gap:50px; align-items:start;}
-  .contact-card{
-    background:var(--paper); border:1px solid var(--line); border-radius:3px; padding:34px;
-    box-shadow:0 30px 60px -34px rgba(33,29,24,0.4);
-  }
-  header.scrolled{box-shadow:0 4px 18px -10px rgba(33,29,24,0.25);}
-  .contact-row{
-    display:flex; align-items:center; gap:16px; padding:16px 4px; border-top:1px solid var(--line);
-    border-radius:2px; transition:background .2s;
-  }
-  .contact-row:first-child{border-top:none;}
-  a.contact-row:hover{background:var(--paper-2);}
-  .contact-row .icon{width:22px; height:22px; color:var(--signal); flex-shrink:0;}
-  .contact-row .label{font-size:12.5px; font-weight:700; color:var(--kraft-dark); letter-spacing:0.5px;}
-  .contact-row .value{font-size:16px; font-weight:700;}
-  @media (max-width:820px){.contact-grid{grid-template-columns:1fr;}}
-  .social-row{display:flex; gap:12px; justify-content:center; margin-top:18px;}
-  .social-btn{
-    width:44px; height:44px; border-radius:50%; border:1.5px solid var(--line);
-    display:flex; align-items:center; justify-content:center; color:var(--ink);
-    transition:background .2s, color .2s, border-color .2s;
-  }
-  .social-btn svg{width:20px; height:20px;}
-  .social-btn:hover{background:var(--ink); color:var(--paper); border-color:var(--ink);}
-
-  /* ---------- Footer ---------- */
-  footer{padding:32px 0; text-align:center; font-size:13.5px; color:var(--ink-soft);}
-
-  /* reveal animation */
-  .reveal{opacity:0; transform:translateY(18px); transition:opacity .6s ease, transform .6s ease;}
-  .reveal.in{opacity:1; transform:none;}
-  /* ---------- Cart system ---------- */
-  .cart-toggle{
-    position:relative; width:40px; height:40px; border:2px solid var(--ink); border-radius:50%;
-    display:flex; align-items:center; justify-content:center; color:var(--ink);
-    transition:background .2s, color .2s; flex-shrink:0; background:none; cursor:pointer;
-  }
-  .cart-toggle:hover{background:var(--ink); color:var(--paper);}
-  .cart-toggle svg{width:18px; height:18px;}
-  .cart-badge{
-    position:absolute; top:-6px; left:-6px; min-width:19px; height:19px; padding:0 4px;
-    background:var(--signal); color:#fff; border-radius:10px; font-size:11px; font-weight:800;
-    align-items:center; justify-content:center; display:none; border:2px solid var(--paper);
-  }
-  .cart-overlay{
-    position:fixed; inset:0; background:rgba(33,29,24,0.5); z-index:90; opacity:0; pointer-events:none;
-    transition:opacity .25s;
-  }
-  .cart-overlay.open{opacity:1; pointer-events:auto;}
-  .cart-drawer{
-    position:fixed; top:0; bottom:0; left:0; width:100%; max-width:400px; background:var(--paper);
-    z-index:91; transform:translateX(-100%); transition:transform .3s ease; display:flex; flex-direction:column;
-    box-shadow:20px 0 40px rgba(0,0,0,0.2);
-  }
-  .cart-drawer.open{transform:translateX(0);}
-  .cart-drawer-head{
-    display:flex; align-items:center; justify-content:space-between; padding:20px 22px;
-    border-bottom:1px solid var(--line);
-  }
-  .cart-drawer-head h3{font-size:19px; font-weight:900;}
-  .cart-close{background:none; border:none; font-size:20px; cursor:pointer; color:var(--ink); width:32px; height:32px;}
-  .cart-items{flex:1; overflow-y:auto; padding:14px 22px;}
-  .cart-empty{color:var(--ink-soft); font-size:14.5px; padding:30px 0; text-align:center;}
-  .cart-line{display:flex; gap:12px; padding:14px 0; border-bottom:1px solid var(--line); align-items:center;}
-  .cart-line img{width:56px; height:56px; object-fit:contain; background:#fff; border:1px solid var(--line); border-radius:2px; flex-shrink:0;}
-  .cart-line-info{flex:1; min-width:0;}
-  .cart-line-name{font-size:14px; font-weight:700; margin-bottom:2px;}
-  .cart-line-unit{font-size:12px; color:var(--kraft-dark); margin-bottom:6px;}
-  .cart-line-controls{display:flex; align-items:center; gap:8px;}
-  .cart-line-controls button{
-    width:24px; height:24px; border:1px solid var(--line); background:var(--paper); border-radius:3px;
-    font-size:14px; cursor:pointer; color:var(--ink);
-  }
-  .cart-line-controls span{font-size:13.5px; font-weight:700; min-width:18px; text-align:center;}
-  .cart-line-del{width:auto !important; padding:0 8px; font-size:11.5px !important; color:var(--signal); border:none !important; margin-right:4px;}
-  .cart-line-price{font-size:13px; font-weight:800; white-space:nowrap;}
-  .cart-drawer-foot{padding:18px 22px 22px; border-top:1px solid var(--line);}
-  .cart-total{font-size:15px; font-weight:800; margin-bottom:12px; text-align:center;}
-
-  /* add-to-cart controls inside gallery cards */
-  .gallery-item .add-row{
-    display:flex; align-items:center; gap:8px; padding:0 16px 16px;
-  }
-  .gallery-item .qty-stepper{
-    display:flex; align-items:center; border:1px solid var(--line); border-radius:2px; overflow:hidden;
-  }
-  .gallery-item .qty-step{
-    width:28px; height:30px; background:var(--paper-2); border:none; font-size:15px; cursor:pointer; color:var(--ink);
-  }
-  .gallery-item .qty-input{
-    width:38px; height:30px; border:none; text-align:center; font-size:13.5px; font-weight:700;
-    background:var(--paper); color:var(--ink);
-  }
-  .gallery-item .add-to-cart-btn{
-    flex:1; height:32px; background:var(--ink); color:var(--paper); border:none; border-radius:2px;
-    font-size:12.5px; font-weight:700; cursor:pointer; transition:background .2s;
-  }
-  .gallery-item .add-to-cart-btn:hover{background:var(--signal);}
-
-  /* =========================================================
-     حركة الصفحة الرئيسية
-     لحظة افتتاح واحدة منسّقة في الهيرو، وبعدها حركة بتجاوب مع تمرير العميل وحركته
-     ========================================================= */
-  /* الهيرو: العنوان بيطلع سطر سطر من ورا قناع */
-  .hero h1 .ln{display:block; overflow:hidden; padding:.08em 0 .14em; margin-bottom:-.08em;}
-  .hero h1 .ln > span{
-    display:block; transform:translateY(115%);
-    animation:spLineUp .95s cubic-bezier(.2,.75,.15,1) forwards;
-    animation-delay:calc(.12s + var(--l,0) * .14s);
-  }
-  @keyframes spLineUp{to{transform:none;}}
-  .hero .eyebrow{animation:spFade .6s ease .02s backwards;}
-  .hero .eyebrow::before{transform-origin:right; animation:spGrow .7s cubic-bezier(.2,.75,.15,1) .05s backwards;}
-  @keyframes spGrow{from{transform:scaleX(0);}}
-  .hero .hero-grid p{animation:spFade .8s ease .6s backwards;}
-  .hero-ctas{animation:spFade .8s ease .78s backwards;}
-  @keyframes spFade{from{opacity:0; transform:translateY(12px);}}
-  .hero-strip .item{animation:spFade .7s ease backwards; animation-delay:calc(1s + var(--s,0) * .09s);}
-
-  /* لوحة اللوجو: بتتكشف من تحت لفوق، وبعدها بتطفو بهدوء ولمعة بتعدّي عليها مرة */
-  .hero-logo-panel{animation:spReveal 1.05s cubic-bezier(.2,.75,.15,1) .15s backwards;}
-  @keyframes spReveal{from{clip-path:inset(100% 0 0 0);}to{clip-path:inset(0 0 0 0);}}
-  .hero-logo-panel img{animation:spFloat 7s ease-in-out 1.4s infinite alternate;}
-  @keyframes spFloat{from{transform:translateY(-6px) rotate(-.6deg);}to{transform:translateY(8px) rotate(.6deg);}}
-  .hero-logo-panel::after{
-    content:""; position:absolute; inset:0; pointer-events:none;
-    background:linear-gradient(105deg, transparent 38%, rgba(255,255,255,.13) 50%, transparent 62%);
-    transform:translateX(-130%); animation:spSheen 1.5s ease 1.25s 1 forwards;
-  }
-  @keyframes spSheen{to{transform:translateX(130%);}}
-
-  /* الهيدر: بيصغر شوية وخط تقدّم القراءة بيملى مع التمرير */
-  .nav{transition:padding .25s ease;}
-  header.scrolled .nav{padding-top:10px; padding-bottom:10px;}
-  header::after{
-    content:""; position:absolute; left:0; right:0; bottom:-1px; height:2px; background:var(--signal);
-    transform-origin:right center; transform:scaleX(var(--p,0)); pointer-events:none;
-  }
-
-  /* ظهور العناصر عند التمرير: عناصر الشبكات بتظهر بالتتابع */
-  .reveal{transition:opacity .7s ease, transform .8s cubic-bezier(.2,.75,.15,1);}
-  .reveal.in.stagger > *{animation:spCardIn .75s cubic-bezier(.2,.75,.15,1) backwards; animation-delay:calc(var(--i,0) * 75ms);}
-  @keyframes spCardIn{from{opacity:0; transform:translateY(26px) scale(.97);}}
-
-  /* كروت الأقسام: بقعة ضوء بتتبع المؤشر */
-  .product-card{position:relative;}
-  .product-card::before{
-    content:""; position:absolute; inset:0; z-index:1; pointer-events:none; opacity:0; transition:opacity .25s;
-    background:radial-gradient(280px circle at var(--mx,50%) var(--my,50%), rgba(225,83,27,.2), transparent 65%);
-  }
-  .product-card:hover::before{opacity:1;}
-
-  @media (prefers-reduced-motion: reduce){
-    .hero h1 .ln > span{transform:none !important; animation:none !important;}
-    .hero .eyebrow,.hero .eyebrow::before,.hero .hero-grid p,.hero-ctas,.hero-strip .item,
-    .hero-logo-panel,.hero-logo-panel img,.hero-logo-panel::after,.reveal.in.stagger > *{animation:none !important;}
-    .hero-logo-panel::after{display:none;}
-    header::after{display:none;}
-  }
-</style>
+<link rel="stylesheet" href="assets/style.css">
 <link rel="stylesheet" href="assets/customer-auth.css">
+<link rel="stylesheet" href="assets/theme.css">
+<link rel="stylesheet" href="assets/home.css">
+<meta name="theme-color" content="#031324">
 </head>
 <body>
 
-<div class="cart-overlay" id="cart-overlay-bg"></div>
-<aside class="cart-drawer" id="cart-drawer">
-  <div class="cart-drawer-head">
-    <h3>سلة الطلب</h3>
-    <button class="cart-close" aria-label="إغلاق">✕</button>
-  </div>
-  <div id="cart-items" class="cart-items"></div>
-  <div class="cart-drawer-foot">
-    <div id="cart-total" class="cart-total"></div>
-    <button class="btn btn-primary cart-checkout" style="width:100%; justify-content:center;">إرسال الطلب عبر واتساب</button>
-  </div>
-</aside>
+<header class="site-header" id="site-header"></header>
 
-<header>
-  <nav class="nav">
-    <a class="logo" href="index.html">
-      <span class="logo-mark" aria-hidden="true" style="background:transparent">
-        <img src="assets/images/sphinx-logo.png" alt="Sphinx Pack" width="38" height="38" style="object-fit:contain; display:block;">
-      </span>
-      <span class="logo-text"><strong>سفينكس باك</strong><em>SPHINX PACK</em></span>
-    </a>
-    <div class="nav-links">
-      <a href="#products">المنتجات</a>
-      <a href="#why">ليه إحنا</a>
-      <a href="#process">إزاي بنشتغل</a>
-      <a href="#contact">تواصل معانا</a>
+<main class="hp">
+  <section class="hp-hero" id="hero" aria-roledescription="carousel" aria-label="العروض">
+    <div class="hp-slide is-active">
+      <div class="hp-art" aria-hidden="true"></div>
+      <div class="hp-copy">
+        <h1><span>كل ما تحتاجه من</span><em>مستلزمات التعبئة والتغليف</em></h1>
+        <p class="hp-tag">جودة عالية .. سعر مناسب .. خدمة مميزة</p><br>
+        <a href="#categories" class="hp-cta">تسوق الآن <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h3l2.6 12.2a2 2 0 0 0 2 1.6h8.6a2 2 0 0 0 2-1.5L21 7H6"/><circle cx="10" cy="20.5" r="1.5"/><circle cx="18" cy="20.5" r="1.5"/></svg></a>
+      </div>
     </div>
-    <div style="display:flex; align-items:center; gap:10px;">
-      <a href="tel:01028735709" class="nav-call" aria-label="اتصل بنا" id="nav-call-link">
-        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 5c0 9 7 16 16 16l3-5-6-2-2 2c-3-1-5-3-6-6l2-2-2-6-5 3z"/></svg>
+    <div class="hp-slide">
+      <div class="hp-art" aria-hidden="true"></div>
+      <div class="hp-copy">
+        <h1><span>أسعار جملة حقيقية</span><em>من المصنع لباب محلك</em></h1>
+        <p class="hp-tag">أكواب .. علب .. فويل .. أدوات مائدة</p><br>
+        <a href="#categories" class="hp-cta">شوف الأقسام</a>
+      </div>
+    </div>
+    <div class="hp-slide">
+      <div class="hp-art" aria-hidden="true"></div>
+      <div class="hp-copy">
+        <h1><span>محتاج عرض سعر؟</span><em>كلمنا وهنرد عليك فورًا</em></h1>
+        <p class="hp-tag">عينات قبل الطلب .. توصيل في الميعاد</p><br>
+        <a href="#contact" class="hp-cta">تواصل معنا</a>
+      </div>
+    </div>
+    <button class="hp-arrow prev" aria-label="السابق"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m15 5-7 7 7 7"/></svg></button>
+    <button class="hp-arrow next" aria-label="التالي"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg></button>
+    <div class="hp-dots" role="tablist"></div>
+  </section>
+
+  <section class="hp-features" aria-label="مميزاتنا">
+    <div class="hp-feat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5.2"/><path d="m12 13.8 0 0M9.2 13.2 8 21l4-2 4 2-1.2-7.8"/><path d="m12 6.4.8 1.6 1.8.2-1.3 1.2.4 1.8-1.7-.9-1.7.9.4-1.8L9.4 8.2l1.8-.2Z" fill="currentColor" stroke="none"/></svg><span>جودة<br>مضمونة</span></div>
+    <div class="hp-feat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h11v8H3zM14 11h4l3 3v2h-7z"/><circle cx="7" cy="18" r="1.8"/><circle cx="17" cy="18" r="1.8"/><path d="M1 10.5h2M2 13h1"/></svg><span>شحن سريع<br>لكل المناطق</span></div>
+    <div class="hp-feat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.8 4.5 5.6v5.6c0 4.4 3.1 8.1 7.5 9.6 4.4-1.5 7.5-5.2 7.5-9.6V5.6L12 2.8Z"/><path d="m8.6 12 2.6 2.6 4.4-5"/></svg><span>دفع آمن<br>ومضمون</span></div>
+    <div class="hp-feat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 14v-2.5a7.5 7.5 0 0 1 15 0V14"/><rect x="3" y="13" width="4" height="6" rx="1.5"/><rect x="17" y="13" width="4" height="6" rx="1.5"/><path d="M19 19c0 1.6-1.8 2.4-4.5 2.4"/></svg><span>دعم فني<br>ومساعدة</span></div>
+  </section>
+
+  <section id="categories" aria-labelledby="cats-h">
+    <h2 class="hp-title" id="cats-h">أقسام المنتجات</h2>
+    <div class="hp-cats" id="hp-cats"></div>
+  </section>
+
+  <section class="hp-sec rv" id="process">
+    <h2 class="hp-title">إزاي بنشتغل</h2>
+    <div class="hp-steps">
+      <div class="hp-step"><div class="n">01</div><h3>تبعتلنا احتياجك</h3><p>كلمنا على واتساب أو تليفون وقولنا محتاج إيه وبأي كمية.</p></div>
+      <div class="hp-step"><div class="n">02</div><h3>نبعتلك عرض سعر</h3><p>عرض واضح بالأصناف والأسعار وميعاد التسليم، من غير مفاجآت.</p></div>
+      <div class="hp-step"><div class="n">03</div><h3>تأكيد وتسليم</h3><p>بعد الموافقة، بنجهز الطلبية ونوصلها في الميعاد المتفق عليه.</p></div>
+      <div class="hp-step"><div class="n">04</div><h3>متابعة دورية</h3><p>بنفضل نتابع معاك احتياجك الشهري عشان مخزونك ميخلصش فجأة.</p></div>
+    </div>
+  </section>
+
+  <section class="hp-contact rv" id="contact">
+    <div>
+      <h2>جاهزين نجهزلك أول طلبية</h2>
+      <p>ابعتلنا كمياتك واحتياجاتك، وهنرد عليك بعرض سعر مفصل في نفس اليوم.</p>
+    </div>
+    <div class="hp-rows">
+      <a href="tel:01028735709" class="hp-row" id="contact-phone-link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 5c0 9 7 16 16 16l3-5-6-2-2 2c-3-1-5-3-6-6l2-2-2-6-5 3z"/></svg>
+        <div><div class="l">اتصل بنا</div><div class="v" id="contact-phone-value">01028735709</div></div>
       </a>
-      <span id="acct-slot"></span>
-      <button class="cart-toggle" aria-label="السلة">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 4h2l2.4 12.4a2 2 0 002 1.6h8.4a2 2 0 002-1.6L21 8H6"/><circle cx="9" cy="21" r="1.4"/><circle cx="18" cy="21" r="1.4"/></svg>
-        <span class="cart-badge">0</span>
-      </button>
-      <a href="#contact" class="nav-cta">اطلب عرض سعر</a>
-    </div>
-    <button class="nav-toggle" aria-label="القائمة" onclick="document.querySelector('.nav-links').classList.toggle('mobile-open')">
-      <span></span><span></span><span></span>
-    </button>
-  </nav>
-
-</header>
-
-<section class="hero">
-  <div class="wrap">
-    <div class="hero-grid">
-      <div class="reveal in">
-        <div class="eyebrow">توريد بالجملة لقطاع الأغذية</div>
-        <h1><span class="ln" style="--l:0"><span>مستلزمات تغليف مطاعمك،</span></span><span class="ln" style="--l:1"><span>من <em>المصنع</em> لباب محلك</span></span></h1>
-        <p>علب تيك أواي، أطباق فويل، أكواب، وأدوات مائدة — بأسعار جملة حقيقية، وتوصيل يلتزم بالمواعيد. بضاعة جاهزة تحت الطلب لأي كمية.</p>
-        <div class="hero-ctas">
-          <a href="#contact" class="btn btn-primary">اطلب عرض سعر الآن</a>
-          <a href="#products" class="btn btn-outline">شوف المنتجات</a>
-        </div>
-      </div>
-      <div class="hero-logo-panel reveal in">
-        <img src="assets/images/sphinx-logo.png" alt="Sphinx Pack" style="width:62%; height:auto; object-fit:contain;">
-      </div>
-    </div>
-  </div>
-  <div class="wrap">
-    <div class="hero-strip">
-      <div class="item"><span class="dot"></span> أسعار مصنع مباشرة</div>
-      <div class="item"><span class="dot"></span> عينات قبل الطلب</div>
-      <div class="item"><span class="dot"></span> تسليم في الموعد</div>
-      <div class="item"><span class="dot"></span> تشكيلة تغطي كل احتياج المطعم</div>
-    </div>
-  </div>
-</section>
-
-<section id="why">
-  <div class="wrap">
-    <div class="section-head reveal">
-      <span class="num">لماذا نحن</span>
-      <h2 style="margin-top:10px;">شريك تغليف يفهم شغل المطاعم</h2>
-      <p>مش بس بنبيع أدوات — بنفهم إن وقف الشغل بسبب نقص مخزون مش وارد عندك.</p>
-    </div>
-    <div class="value-grid reveal">
-      <div class="value-card">
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/></svg>
-        <h3>أسعار جملة حقيقية</h3>
-        <p>تعامل مباشر مع المصانع من غير وسطاء زيادة، يعني هامش ربح أوسع لمحلك.</p>
-      </div>
-      <div class="value-card">
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
-        <h3>التزام في المواعيد</h3>
-        <p>جدول توريد ثابت، عشان مطبخك أو محلك ميوقفش يوم بسبب تأخير شحنة.</p>
-      </div>
-      <div class="value-card">
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 4h16v6H4z"/><path d="M4 14h10v6H4z"/><path d="M17 14h3v6h-3z"/></svg>
-        <h3>تشكيلة واسعة</h3>
-        <p>علب، فويل، أكواب، أدوات مائدة — كل احتياجات التقديم من مكان واحد.</p>
-      </div>
-      <div class="value-card">
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>
-        <h3>عينة قبل الالتزام</h3>
-        <p>تقدر تجرب المنتج وتتأكد من الجودة قبل ما تاخد قرار الكمية الكبيرة.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section class="products" id="products">
-  <div class="wrap">
-    <div class="section-head reveal">
-      <span class="num">قائمة المنتجات</span>
-      <h2 style="margin-top:10px;">كل حاجة يحتاجها مطعمك للتقديم</h2>
-      <p>تشكيلة مختارة بعناية تناسب المطاعم، الكافيهات، وشركات الكاترينج.</p>
-      <form id="product-search-form" style="max-width:420px;margin:22px auto 0;display:flex;gap:8px" role="search">
-        <input type="text" id="product-search-input" placeholder="ابحث عن منتج... (مثال: كوب 12 أوز)"
-          style="flex:1;padding:12px 16px;border:1px solid var(--line);border-radius:10px;font-family:inherit;font-size:14px;background:#fff">
-        <button type="submit" class="btn btn-primary" style="padding:0 18px">بحث</button>
-      </form>
-    </div>
-    <div class="product-grid reveal" id="product-grid" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr))">
-      <a class="product-card" data-cat="meal-boxes" href="category.html?cat=meal-boxes">
-        <div class="card-media"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 8h16v12H4z"/><path d="M4 8l2-4h12l2 4"/><path d="M9 12h6"/></svg></div>
-        <div class="card-body">
-          <h3>علب الوجبات</h3>
-          <p>علب شفافة وفوم لكل أحجام الوجبات والسلطات، مناسبة للتيك أواي والدليفري.</p>
-          <ul>
-            <li><span>مقاسات 500 - 1000 مل</span><span>◆</span></li>
-            <li><span>علب سلطة دائرية</span><span>◆</span></li>
-            <li><span>فوم مقسّم ومفرد</span><span>◆</span></li>
-          </ul>
-          <span class="card-link">شوف كل المقاسات <span class="arrow">←</span></span>
-        </div>
+      <a href="https://wa.me/201028735709" target="_blank" rel="noopener" class="hp-row" id="contact-wa-link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 11.5a8.5 8.5 0 01-12.4 7.6L3 20l1-5.4A8.5 8.5 0 1121 11.5z"/></svg>
+        <div><div class="l">واتساب</div><div class="v" id="contact-wa-value">01028735709</div></div>
       </a>
-      <a class="product-card" data-cat="foil" href="category.html?cat=foil">
-        <div class="card-media"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="4" y="6" width="16" height="12" rx="1"/><path d="M4 10h16"/></svg></div>
-        <div class="card-body">
-          <h3>أطباق وأدوات الفويل</h3>
-          <p>صواني وأطباق ألومنيوم بالغطاء، مناسبة للفرن والتسخين والتوصيل الساخن.</p>
-          <ul>
-            <li><span>أطباق مستطيلة ودائرية</span><span>◆</span></li>
-            <li><span>صواني فرن كبيرة</span><span>◆</span></li>
-            <li><span>لفافات فويل ألومنيوم</span><span>◆</span></li>
-          </ul>
-          <span class="card-link">شوف كل المقاسات <span class="arrow">←</span></span>
-        </div>
-      </a>
-      <a class="product-card" data-cat="paper-cups" href="category.html?cat=paper-cups">
-        <div class="card-media"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg></div>
-        <div class="card-body">
-          <h3>أكواب ورقية</h3>
-          <p>أكواب ساخنة وباردة بمقاسات مختلفة، وأطباق ورقية خفيفة.</p>
-          <ul>
-            <li><span>أكواب قهوة 8 و12 أوز</span><span>◆</span></li>
-            <li><span>أكواب مشروبات باردة</span><span>◆</span></li>
-            <li><span>أغطية متوافقة</span><span>◆</span></li>
-          </ul>
-          <span class="card-link">شوف كل المقاسات <span class="arrow">←</span></span>
-        </div>
-      </a>
-      <a class="product-card" data-cat="plastic-cups" href="category.html?cat=plastic-cups">
-        <div class="card-media"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M6 8h12l-1.2 11a2 2 0 0 1-2 1.8H9.2a2 2 0 0 1-2-1.8L6 8Z"/><path d="M6 8 5.2 5h13.6L18 8"/></svg></div>
-        <div class="card-body">
-          <h3>أكواب بلاستيكية</h3>
-          <p>أكواب بلاستيك شفافة ومقاومة، بمقاسات مختلفة تناسب كل أنواع المشروبات.</p>
-          <ul>
-            <li><span>أكواب باردة شفافة</span><span>◆</span></li>
-            <li><span>مقاسات متعددة</span><span>◆</span></li>
-            <li><span>أغطية مناسبة</span><span>◆</span></li>
-          </ul>
-          <span class="card-link">شوف كل المقاسات <span class="arrow">←</span></span>
-        </div>
-      </a>
-      <a class="product-card" data-cat="tableware" href="category.html?cat=tableware">
-        <div class="card-media"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M6 3v8a2 2 0 004 0V3"/><path d="M8 11v10"/><path d="M17 3v18"/><path d="M14 3c0 3 3 3 3 6"/></svg></div>
-        <div class="card-body">
-          <h3>أدوات المائدة</h3>
-          <p>أطقم بلاستيك للتقديم، مناسبة للمطاعم والكافيهات وشركات الكاترينج.</p>
-          <ul>
-            <li><span>أطقم ملعقة وشوكة وسكينة</span><span>◆</span></li>
-            <li><span>مناديل سفرة</span><span>◆</span></li>
-            <li><span>أطباق تقديم</span><span>◆</span></li>
-          </ul>
-          <span class="card-link">شوف كل المقاسات <span class="arrow">←</span></span>
-        </div>
-      </a>
-      <a class="product-card" data-cat="accessories" href="category.html?cat=accessories">
-        <div class="card-media"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M6 8h12l1 12H5L6 8Z"/><path d="M9 8a3 3 0 0 1 6 0"/></svg></div>
-        <div class="card-body">
-          <h3>إكسسوارات</h3>
-          <p>شنط وأكياس ورقية للساندوتشات والتيك أواي، ومستلزمات تغليف إضافية.</p>
-          <ul>
-            <li><span>شنط تيك أواي</span><span>◆</span></li>
-            <li><span>أكياس ورقية</span><span>◆</span></li>
-            <li><span>مستلزمات تغليف متنوعة</span><span>◆</span></li>
-          </ul>
-          <span class="card-link">شوف كل المقاسات <span class="arrow">←</span></span>
-        </div>
-      </a>
-      <a class="product-card" data-cat="medical" href="category.html?cat=medical">
-        <div class="card-media"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 3v18M3 12h18"/></svg></div>
-        <div class="card-body">
-          <h3>مستلزمات طبية</h3>
-          <p>مستلزمات طبية أساسية بجودة موثوقة تناسب الاستخدام التجاري واليومي.</p>
-          <ul>
-            <li><span>تشكيلة متنوعة</span><span>◆</span></li>
-            <li><span>جودة موثوقة</span><span>◆</span></li>
-            <li><span>متاحة بالجملة</span><span>◆</span></li>
-          </ul>
-          <span class="card-link">شوف كل المقاسات <span class="arrow">←</span></span>
-        </div>
-      </a>
+      <div class="hp-row">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 21s7-6.5 7-11a7 7 0 10-14 0c0 4.5 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
+        <div><div class="l">العنوان</div><div class="v">بشتيل، الجيزة</div></div>
+      </div>
+      <a href="https://wa.me/201028735709" target="_blank" rel="noopener" class="hp-wa" id="footer-wa-btn">راسلنا على واتساب</a>
+      <div class="social-row" id="social-links-row"></div>
     </div>
-  </div>
-</section>
+  </section>
+</main>
 
-<section id="process">
-  <div class="wrap">
-    <div class="section-head reveal">
-      <span class="num">إزاي بنشتغل</span>
-      <h2 style="margin-top:10px;">من أول تواصل لحد التسليم</h2>
-    </div>
-    <div class="process-list reveal">
-      <div class="process-row">
-        <span class="num">01</span>
-        <div><h3>تبعتلنا احتياجك</h3><p>كلمنا على واتساب أو تليفون وقولنا محتاج إيه وبأي كمية.</p></div>
-      </div>
-      <div class="process-row">
-        <span class="num">02</span>
-        <div><h3>نبعتلك عرض سعر</h3><p>عرض واضح بالأصناف والأسعار وميعاد التسليم، من غير مفاجآت.</p></div>
-      </div>
-      <div class="process-row">
-        <span class="num">03</span>
-        <div><h3>تأكيد وتسليم</h3><p>بعد الموافقة، بنجهز الطلبية ونوصلها في الميعاد المتفق عليه.</p></div>
-      </div>
-      <div class="process-row">
-        <span class="num">04</span>
-        <div><h3>متابعة دورية</h3><p>بنفضل نتابع معاك احتياجك الشهري عشان مخزونك ميخلصش فجأة.</p></div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section class="contact" id="contact">
-  <div class="wrap">
-    <div class="contact-grid">
-      <div class="reveal">
-        <span class="num">تواصل معانا</span>
-        <h2 style="margin-top:10px; font-size:clamp(26px,3.4vw,36px); font-weight:900;">جاهزين نجهزلك أول طلبية</h2>
-        <p style="color:var(--ink-soft); margin-top:14px; max-width:420px;">ابعتلنا كمياتك واحتياجاتك، وهنرد عليك بعرض سعر مفصل في نفس اليوم.</p>
-      </div>
-      <div class="contact-card reveal">
-        <a href="tel:01028735709" class="contact-row" style="cursor:pointer;" id="contact-phone-link">
-          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 5c0 9 7 16 16 16l3-5-6-2-2 2c-3-1-5-3-6-6l2-2-2-6-5 3z"/></svg>
-          <div><div class="label">اتصل بنا</div><div class="value" id="contact-phone-value">01028735709</div></div>
-        </a>
-        <a href="https://wa.me/201028735709" target="_blank" rel="noopener" class="contact-row" style="cursor:pointer;" id="contact-wa-link">
-          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 11.5a8.5 8.5 0 01-12.4 7.6L3 20l1-5.4A8.5 8.5 0 1121 11.5z"/></svg>
-          <div><div class="label">واتساب</div><div class="value" id="contact-wa-value">01028735709</div></div>
-        </a>
-        <div class="contact-row">
-          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 21s7-6.5 7-11a7 7 0 10-14 0c0 4.5 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
-          <div><div class="label">العنوان</div><div class="value">بشتيل، الجيزة</div></div>
-        </div>
-        <a href="#" class="contact-row" id="contact-email-row" style="cursor:pointer;display:none;">
-          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
-          <div><div class="label">البريد الإلكتروني</div><div class="value" id="contact-email-value" dir="ltr" style="text-align:right"></div></div>
-        </a>
-        <a href="https://wa.me/201028735709" target="_blank" rel="noopener" class="btn btn-primary" style="width:100%; justify-content:center; margin-top:24px;" id="footer-wa-btn">راسلنا على واتساب</a>
-        <div class="social-row" id="social-links-row"></div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<script>
-  /* إيميل التواصل: اكتبه هنا بين العلامتين عشان يظهر تحت العنوان (لو فاضي الصف بيفضل مخفي) */
-  const CONTACT_EMAIL = "";
-  if (/^[^\s@<>"']+@[^\s@<>"']+\.[^\s@<>"']+$/.test(CONTACT_EMAIL)) {
-    const r = document.getElementById("contact-email-row");
-    r.href = "mailto:" + CONTACT_EMAIL; r.style.display = "";
-    document.getElementById("contact-email-value").textContent = CONTACT_EMAIL;
-  }
-</script>
-
-<footer>
-  <div class="wrap">© 2026 Sphinx Pack | سفينكس باك لمستلزمات تغليف الأطعمة — جميع الحقوق محفوظة</div>
-  <div class="wrap" style="margin-top:8px;display:flex;flex-wrap:wrap;justify-content:center;gap:6px 22px">
-    <a href="policy.html" style="color:inherit;text-decoration:underline">سياسة الاستبدال والاسترجاع</a>
-    <a href="shipping-policy.html" style="color:inherit;text-decoration:underline">سياسة الشحن والتوصيل</a>
-    <a href="privacy-policy.html" style="color:inherit;text-decoration:underline">سياسة الخصوصية</a>
-  </div>
-</footer>
-
-<script>
-  const header = document.querySelector('header');
-  function onScroll(){
-    header.classList.toggle('scrolled', window.scrollY > 8);
-    const max = document.documentElement.scrollHeight - window.innerHeight;
-    header.style.setProperty('--p', max > 0 ? Math.min(1, window.scrollY / max).toFixed(4) : 0);
-  }
-  window.addEventListener('scroll', onScroll, {passive:true});
-  onScroll();
-
-  /* ترتيب ظهور عناصر الشبكات بالتتابع */
-  document.querySelectorAll('.hero-strip .item').forEach((el,i)=>el.style.setProperty('--s', i));
-  document.querySelectorAll('.value-grid,.product-grid,.process-list').forEach(g=>{
-    g.classList.add('stagger');
-    [...g.children].forEach((c,i)=>c.style.setProperty('--i', i));
-  });
-
-  /* بقعة الضوء على كروت الأقسام (للماوس بس) */
-  if (matchMedia('(hover:hover) and (pointer:fine)').matches) {
-    document.getElementById('product-grid').addEventListener('pointermove', e=>{
-      const card = e.target.closest('.product-card');
-      if (!card) return;
-      const r = card.getBoundingClientRect();
-      card.style.setProperty('--mx', (e.clientX - r.left) + 'px');
-      card.style.setProperty('--my', (e.clientY - r.top) + 'px');
-    });
-  }
-
-  const els = document.querySelectorAll('.reveal');
-  const io = new IntersectionObserver((entries)=>{
-    entries.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target);} });
-  }, {threshold:0.12});
-  els.forEach(el=>io.observe(el));
-
-  document.querySelectorAll('a[href^="#"]').forEach(a=>{
-    a.addEventListener('click', ()=> {
-      document.querySelector('.nav-links').classList.remove('mobile-open');
-    });
-  });
-</script>
+<footer id="site-footer"></footer>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
@@ -736,113 +110,78 @@
 <script src="assets/shop.js"></script>
 <script src="assets/customer-auth.js"></script>
 <script>
-  /* ربط سلة الصفحة الرئيسية بنفس نظام السلة المستخدم في باقي الموقع */
-  function renderDrawer() {
-    const wrap = document.getElementById("cart-items");
-    const totalEl = document.getElementById("cart-total");
-    if (!wrap) return;
-    const cart = getCart();
-    if (!cart.length) {
-      wrap.innerHTML = `<p class="cart-empty">السلة فاضية دلوقتي</p>`;
-    } else {
-      wrap.innerHTML = cart.map(l => `
-        <div class="cart-line">
-          <img src="${l.image || 'assets/images/sphinx-logo.png'}" alt="">
-          <div class="cart-line-info">
-            <div class="cart-line-name">${escHtml(l.name)}</div>
-            <div class="cart-line-unit">${catName(l.category)}</div>
-            <div class="cart-line-controls">
-              <button onclick="setLineQty('${l.id}', ${l.qty - 1})">−</button>
-              <span>${l.qty}</span>
-              <button onclick="setLineQty('${l.id}', ${l.qty + 1})">+</button>
-              <button class="cart-line-del" onclick="removeFromCart('${l.id}')">حذف</button>
-            </div>
-          </div>
-          <div class="cart-line-price">${(l.price * l.qty).toFixed(2)} ج.م</div>
-        </div>`).join("");
-    }
-    if (totalEl) totalEl.textContent = "الإجمالي: " + cartTotal(cart).toFixed(2) + " ج.م";
-    const badge = document.querySelector(".cart-badge");
-    if (badge) {
-      const n = cartCount(cart);
-      badge.textContent = n;
-      badge.style.display = n > 0 ? "flex" : "none";
-    }
-  }
-  function openDrawer() {
-    renderDrawer();
-    document.getElementById("cart-drawer").classList.add("open");
-    document.getElementById("cart-overlay-bg").classList.add("open");
-  }
-  function closeDrawer() {
-    document.getElementById("cart-drawer").classList.remove("open");
-    document.getElementById("cart-overlay-bg").classList.remove("open");
-  }
-  document.querySelector(".cart-toggle").addEventListener("click", openDrawer);
-  document.querySelector(".cart-close").addEventListener("click", closeDrawer);
-  document.getElementById("cart-overlay-bg").addEventListener("click", closeDrawer);
-  document.querySelector(".cart-checkout").addEventListener("click", () => location.href = "cart.html");
-  renderDrawer();
+  /* ---------- الهيدر والفوتر المشتركين ---------- */
+  mountHeader(null);
+  mountFooter();
 
-  document.getElementById("product-search-form").addEventListener("submit", e => {
-    e.preventDefault();
-    const q = document.getElementById("product-search-input").value.trim();
-    if (q) location.href = "category.html?search=" + encodeURIComponent(q);
-  });
-
-  /* عرض أي أقسام إضافية تمت إضافتها من لوحة التحكم (غير السبعة الأساسية) */
-  function iconSvg(name) {
-    return (typeof ICONS !== "undefined" && ICONS[name]) ? ICONS[name] :
-      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>';
-  }
-  function renderExtraCategoryCards(cats) {
-    const grid = document.getElementById("product-grid");
-    if (!grid) return;
-    const liveSlugs = cats.map(c => c.slug);
-
-    /* إخفاء أي قسم افتراضي (من الـ 7 الأساسيين) اتحذف من لوحة التحكم */
-    grid.querySelectorAll(".product-card[data-cat]").forEach(card => {
-      card.style.display = liveSlugs.includes(card.dataset.cat) ? "" : "none";
+  /* ---------- السلايدر (تلقائي كل 5 ثواني + سحب بالإصبع) ---------- */
+  (function () {
+    const hero = document.getElementById("hero");
+    const slides = [...hero.querySelectorAll(".hp-slide")];
+    const dots = hero.querySelector(".hp-dots");
+    let i = 0, timer;
+    slides.forEach((_, n) => {
+      const b = document.createElement("button");
+      b.setAttribute("aria-label", "شريحة " + (n + 1));
+      b.addEventListener("click", () => { go(n); restart(); });
+      dots.appendChild(b);
     });
-
-    grid.querySelectorAll(".extra-cat-card").forEach(el => el.remove());
-    const defaultSlugs = (typeof DEFAULT_CATEGORIES !== "undefined") ? DEFAULT_CATEGORIES.map(c => c.slug) : [];
-    cats.filter(c => !defaultSlugs.includes(c.slug)).forEach(c => {
-      const a = document.createElement("a");
-      a.className = "product-card extra-cat-card";
-      a.href = "category.html?cat=" + c.slug;
-      const media = c.image
-        ? `<img src="${escHtml(safeImg(c.image))}" alt="${escHtml(c.name)}" style="width:100%;height:100%;object-fit:cover">`
-        : iconSvg(c.icon);
-      a.innerHTML = `
-        <div class="card-media">${media}</div>
-        <div class="card-body">
-          <h3>${escHtml(c.name)}</h3>
-          <p>${escHtml(c.description || `تصفح كل منتجات ${c.name} المتاحة بالمتجر.`)}</p>
-          <span class="card-link">شوف كل المنتجات <span class="arrow">←</span></span>
-        </div>`;
-      grid.appendChild(a);
+    function go(n) {
+      i = (n + slides.length) % slides.length;
+      slides.forEach((s, k) => s.classList.toggle("is-active", k === i));
+      [...dots.children].forEach((d, k) => d.classList.toggle("on", k === i));
+    }
+    function restart() { clearInterval(timer); if (!matchMedia("(prefers-reduced-motion: reduce)").matches) timer = setInterval(() => go(i + 1), 5000); }
+    hero.querySelector(".prev").addEventListener("click", () => { go(i - 1); restart(); });
+    hero.querySelector(".next").addEventListener("click", () => { go(i + 1); restart(); });
+    let x0 = null;
+    hero.addEventListener("touchstart", e => { x0 = e.touches[0].clientX; }, { passive: true });
+    hero.addEventListener("touchend", e => {
+      if (x0 === null) return;
+      const dx = e.changedTouches[0].clientX - x0; x0 = null;
+      if (Math.abs(dx) > 40) { go(i + (dx < 0 ? 1 : -1)); restart(); }
     });
-  }
-  if (typeof initCategories === "function") initCategories(renderExtraCategoryCards);
+    go(0); restart();
+  })();
 
-  /* تحديث رقم التواصل وروابط السوشيال ميديا من الإعدادات */
+  /* ---------- كروت الأقسام (من Firebase، مع صور احتياطية) ---------- */
+  const CAT_PHOTOS = {
+    "paper-cups": "assets/images/home/cat-cups.jpg",
+    "meal-boxes": "assets/images/home/cat-meal.jpg",
+    "foil": "assets/images/home/cat-foil.jpg",
+    "plastic-cups": "assets/images/home/cat-plastic.jpg",
+    "tableware": "assets/images/home/cat-tableware.jpg",
+  };
+  function renderCategories() {
+    const grid = document.getElementById("hp-cats");
+    grid.innerHTML = CATEGORIES.map(c => {
+      const img = c.image ? safeImg(c.image) : (CAT_PHOTOS[c.slug] || "");
+      const pic = img ? `<img src="${escHtml(img)}" alt="" loading="lazy">` : (ICONS[c.icon] || ICONS.box);
+      return `<a class="hp-cat" href="category.html?cat=${encodeURIComponent(c.slug)}"><span class="pic">${pic}</span><span>${escHtml(c.name)}</span></a>`;
+    }).join("");
+  }
+  renderCategories();
+  if (typeof initCategories === "function") initCategories(() => { renderCategories(); mountMenu(); mountFooter(); });
+
+  /* ---------- الإعدادات: رقم التواصل والسوشيال ---------- */
   function applySettingsToPage() {
     const local = localPhone(WHATSAPP_NUMBER);
-    document.getElementById("nav-call-link").href = "tel:" + local;
     document.getElementById("contact-phone-link").href = "tel:" + local;
     document.getElementById("contact-phone-value").textContent = local;
     document.getElementById("contact-wa-link").href = "https://wa.me/" + WHATSAPP_NUMBER;
     document.getElementById("contact-wa-value").textContent = local;
     document.getElementById("footer-wa-btn").href = "https://wa.me/" + WHATSAPP_NUMBER;
-
-    const row = document.getElementById("social-links-row");
-    row.innerHTML = (SOCIAL_LINKS || []).map(s => `
+    document.getElementById("social-links-row").innerHTML = (SOCIAL_LINKS || []).map(s => `
       <a href="${escHtml(safeUrl(s.url))}" target="_blank" rel="noopener" aria-label="${escHtml(s.name)}" class="social-btn" title="${escHtml(s.name)}">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 2.5 15.3 0 18M12 3c-2.5 2.7-2.5 15.3 0 18"/></svg>
       </a>`).join("");
+    mountHeader(null); mountMenu(); mountFooter();
   }
   if (typeof initSettings === "function") initSettings(applySettingsToPage);
+
+  /* ---------- ظهور تدريجي ---------- */
+  const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } }), { threshold: .12 });
+  document.querySelectorAll(".rv").forEach(el => io.observe(el));
 </script>
 </body>
 </html>
