@@ -5,7 +5,6 @@
 const DEFAULT_WHATSAPP_NUMBER = "201028735709"; // بصيغة دولية بدون + ، يستخدم في روابط wa.me
 let WHATSAPP_NUMBER = DEFAULT_WHATSAPP_NUMBER;
 let SOCIAL_LINKS = []; // [{key,name,url}] بتتحمل من الإعدادات
-let CONTACT_EMAIL = "", CONTACT_ADDRESS = "بشتيل، الجيزة", ADDRESS_MAP_URL = ""; // بيانات التواصل الإضافية (من إعدادات الأدمن)
 let DEPOSIT_PERCENT = 25; // نسبة العربون الافتراضية، تتغيّر من الإعدادات
 let WALLET_NUMBER = "01028735709"; // رقم فودافون كاش للتحويل اليدوي
 let INSTAPAY_NUMBER = "01028735709"; // رقم/حساب إنستاباي للتحويل اليدوي
@@ -37,9 +36,6 @@ function initSettings(callback) {
     const val = snap.val() || {};
     WHATSAPP_NUMBER = val.whatsappNumber || DEFAULT_WHATSAPP_NUMBER;
     DEPOSIT_PERCENT = val.depositPercent || 25;
-    CONTACT_EMAIL = typeof val.contactEmail === "string" ? val.contactEmail : "";
-    CONTACT_ADDRESS = typeof val.contactAddress === "string" && val.contactAddress ? val.contactAddress : "بشتيل، الجيزة";
-    ADDRESS_MAP_URL = typeof val.addressMapUrl === "string" ? val.addressMapUrl : "";
     WALLET_NUMBER = val.walletNumber || localPhone(WHATSAPP_NUMBER);
     INSTAPAY_NUMBER = val.instapayNumber || WALLET_NUMBER;
     SOCIAL_LINKS = val.socialLinks ? Object.entries(val.socialLinks).map(([key, s]) => ({ key, ...s })) : [];
@@ -182,6 +178,43 @@ function updateCartCount() {
   });
 }
 
+/* ---------- حركة الإضافة للسلة: صورة المنتج بتطير لأيقونة السلة ---------- */
+function bumpCartIcon() {
+  const t = document.getElementById("open-cart-btn") || document.querySelector(".cart-toggle");
+  if (t && t.animate && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    t.animate([{ transform: "scale(1)" }, { transform: "scale(1.16)" }, { transform: "scale(1)" }], { duration: 380, easing: "ease-out" });
+  }
+}
+function flyToCart(fromEl) {
+  try {
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const target = document.getElementById("open-cart-btn") || document.querySelector(".cart-toggle");
+    const card = fromEl && fromEl.closest && fromEl.closest(".prod-card");
+    const src = (card && card.querySelector(".thumb")) || document.getElementById("pm-image");
+    if (!target || !src || !src.animate) { bumpCartIcon(); return; }
+    const a = src.getBoundingClientRect(), b = target.getBoundingClientRect();
+    const size = 64;
+    const ghost = document.createElement("div");
+    ghost.setAttribute("aria-hidden", "true");
+    ghost.style.cssText = "position:fixed;z-index:400;pointer-events:none;border-radius:12px;overflow:hidden;background:var(--amber,#E1531B);box-shadow:0 10px 24px rgba(33,29,24,.35);" +
+      "width:" + size + "px;height:" + size + "px;left:" + (a.left + a.width / 2 - size / 2) + "px;top:" + (a.top + a.height / 2 - size / 2) + "px;";
+    const img = src.querySelector("img");
+    if (img) {
+      const c = img.cloneNode(false);
+      c.style.cssText = "width:100%;height:100%;object-fit:cover;display:block";
+      ghost.appendChild(c);
+    }
+    document.body.appendChild(ghost);
+    const dx = (b.left + b.width / 2) - (a.left + a.width / 2), dy = (b.top + b.height / 2) - (a.top + a.height / 2);
+    const anim = ghost.animate([
+      { transform: "translate(0,0) scale(1)", opacity: 1 },
+      { transform: "translate(" + dx * 0.55 + "px," + (dy * 0.55 - 70) + "px) scale(.7)", opacity: 1, offset: 0.55 },
+      { transform: "translate(" + dx + "px," + dy + "px) scale(.18)", opacity: .25 },
+    ], { duration: 750, easing: "cubic-bezier(.45,.05,.55,.95)" });
+    anim.onfinish = () => { ghost.remove(); bumpCartIcon(); };
+  } catch (e) { /* الحركة تحسين شكلي بس */ }
+}
+
 /* ---------- توست تنبيه صغير ---------- */
 let toastTimer;
 function showToast(msg) {
@@ -277,16 +310,20 @@ function buildWhatsappMessage(cart, customer) {
 /* ---------- التعامل مع السيرفر ----------
    إنشاء الأوردرات وتجهيز الدفع بيتم من السيرفر (Vercel): هو اللي بيحسب الأسعار والإجمالي
    ويرقّم الأوردر ويخصم المخزون، والمتصفح مابيكتبش في قاعدة البيانات خالص. */
-function postToServer(path, body) {
-  return fetch(PAYMENT_SERVER_URL + path, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  }).then(async r => {
-    const d = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error(d.error || "حصل خطأ، جرّب تاني");
-    return d;
-  });
+async function postToServer(path, body) {
+  /* تسجيل الدخول إجباري: بنبعت توكن الحساب، والسيرفر بيتحقق منه ومابيقبلش أي طلب من غيره */
+  const headers = { "Content-Type": "application/json" };
+  const token = window.SPAuth ? await SPAuth.getToken() : null;
+  if (token) headers.Authorization = "Bearer " + token;
+  const r = await fetch(PAYMENT_SERVER_URL + path, { method: "POST", headers, body: JSON.stringify(body) });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) {
+    const e = new Error(d.error || "حصل خطأ، جرّب تاني");
+    e.status = r.status;
+    if ((r.status === 401 || r.status === 403) && window.SPAuth) SPAuth.handleServerAuthError(r.status);
+    throw e;
+  }
+  return d;
 }
 function cartForServer(cart) {
   return cart.map(l => ({ id: l.id, category: l.category, qty: l.qty })); // بنبعت المعرّف والكمية بس، الأسعار بتتحسب في السيرفر
@@ -340,6 +377,7 @@ function compressImage(file, maxSize = 700, quality = 0.72) {
 function sendOrderViaWhatsapp(customer, extra) {
   const cart = getCart();
   if (!cart.length) { showToast("السلة فاضية"); return Promise.resolve(null); }
+  if (window.SPAuth && !SPAuth.isLoggedIn()) { SPAuth.requireLogin().catch(() => {}); return Promise.reject(new Error("سجّل دخولك الأول عشان تكمّل الطلب")); }
   const msg = buildWhatsappMessage(cart, customer);
   const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`;
 
@@ -396,16 +434,18 @@ function mountHeader(activeSlug) {
         <span class="mark" style="background:transparent"><img src="assets/images/sphinx-logo.png" alt="SphinxPack" style="width:42px;height:42px;object-fit:contain"></span>
         <span class="brand">SphinxPack<small>مستلزمات التغليف والضيافة</small></span>
       </a>
+      <span class="nav-actions"><span id="acct-slot"></span>
       <button class="cart-btn" id="open-cart-btn">
         ${ICONS.bag.replace("currentColor","currentColor")}
         <span>السلة</span>
         <span class="count" data-cart-count>0</span>
-      </button>
+      </button></span>
     </div>
     ${renderCatNav(activeSlug)}
   `;
   document.getElementById("open-cart-btn").addEventListener("click", openDrawer);
   updateCartCount();
+  if (window.SPAuth) SPAuth.mount();
 }
 
 function mountFooter() {
