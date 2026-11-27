@@ -41,7 +41,10 @@
     const c = (e && e.code) || "";
     if (c === "auth/popup-closed-by-user" || c === "auth/cancelled-popup-request") return "";
     if (c === "auth/popup-blocked") return "المتصفح منع نافذة جوجل — اسمح بالنوافذ المنبثقة وجرّب تاني.";
-    if (c === "auth/unauthorized-domain") return "دومين الموقع مش مضاف في Firebase (Authorized domains).";
+    if (c === "auth/unauthorized-domain") {
+      let pid = ""; try { pid = firebase.app().options.projectId; } catch (x) {}
+      return "الدومين ده مش مضاف في Firebase: \u2066" + location.hostname + "\u2069" + (pid ? " — المشروع: \u2066" + pid + "\u2069" : "") + ". أضفه في Authentication ← Settings ← Authorized domains.";
+    }
     if (c === "auth/operation-not-allowed") return "تسجيل الدخول بجوجل لسه مش مفعّل في Firebase.";
     if (c === "auth/account-exists-with-different-credential") return "الإيميل ده مسجّل بكلمة سر — سجّل دخولك بيها.";
     if (c === "auth/network-request-failed") return "مفيش اتصال بالإنترنت، جرّب تاني.";
