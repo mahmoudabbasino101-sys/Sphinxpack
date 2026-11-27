@@ -91,6 +91,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 11.5a8.5 8.5 0 01-12.4 7.6L3 20l1-5.4A8.5 8.5 0 1121 11.5z"/></svg>
         <div><div class="l">واتساب</div><div class="v" id="contact-wa-value">01028735709</div></div>
       </a>
+      <div id="hp-social-rows" style="display:contents"></div>
       <div class="hp-row">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 21s7-6.5 7-11a7 7 0 10-14 0c0 4.5 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
         <div><div class="l">العنوان</div><div class="v">بشتيل، الجيزة</div></div>
@@ -180,7 +181,13 @@
     document.getElementById("contact-wa-link").href = "https://wa.me/" + WHATSAPP_NUMBER;
     document.getElementById("contact-wa-value").textContent = local;
     document.getElementById("footer-wa-btn").href = "https://wa.me/" + WHATSAPP_NUMBER;
-    document.getElementById("social-links-row").innerHTML = (SOCIAL_LINKS || []).map(s => `
+    const fb = socialOf("facebook"), ig = socialOf("instagram"), em = contactEmail();
+    const row = (href, icon, label, val, ext) => `<a class="hp-row" href="${escHtml(href)}"${ext ? ' target="_blank" rel="noopener"' : ""}>${icon}<div><div class="l">${label}</div><div class="v">${val}</div></div></a>`;
+    document.getElementById("hp-social-rows").innerHTML =
+      (fb ? row(fb, SOC_ICONS.facebook, "فيس بوك", "تابعنا على فيس بوك", true) : "") +
+      (ig ? row(ig, SOC_ICONS.instagram, "إنستجرام", "تابعنا على إنستجرام", true) : "") +
+      (em ? row("mailto:" + em, SOC_ICONS.email, "البريد الإلكتروني", '<span dir="ltr">' + escHtml(em) + "</span>", false) : "");
+    document.getElementById("social-links-row").innerHTML = (SOCIAL_LINKS || []).filter(s => safeUrl(s.url) !== fb && safeUrl(s.url) !== ig).map(s => `
       <a href="${escHtml(safeUrl(s.url))}" target="_blank" rel="noopener" aria-label="${escHtml(s.name)}" class="social-btn" title="${escHtml(s.name)}">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 2.5 15.3 0 18M12 3c-2.5 2.7-2.5 15.3 0 18"/></svg>
       </a>`).join("");
