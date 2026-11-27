@@ -14,14 +14,14 @@
 .hp-slide.is-active{opacity:1;visibility:visible}
 .hp-art{
   position:absolute;inset-block:0;left:0;width:58%;
-  background:url(images/hero-products.jpg) left center/cover no-repeat;
+  height:100%;object-fit:cover;object-position:left center;
   -webkit-mask-image:linear-gradient(to right,#000 55%,transparent 100%),linear-gradient(to bottom,transparent,#000 14%,#000 86%,transparent);
   -webkit-mask-composite:source-in;
   mask-image:linear-gradient(to right,#000 55%,transparent 100%),linear-gradient(to bottom,transparent,#000 14%,#000 86%,transparent);
   mask-composite:intersect;
 }
-.hp-slide:nth-child(2) .hp-art{background-position:70% center;transform:scaleX(-1)}
-.hp-slide:nth-child(3) .hp-art{background-position:30% 40%;background-size:160%}
+.hp-slide:nth-child(2) .hp-art{object-position:70% center;transform:scaleX(-1)}
+.hp-slide:nth-child(3) .hp-art{object-position:30% 40%}
 .hp-copy{position:relative;width:56%;padding:14px 6px 44px;padding-inline-start:clamp(12px,4vw,56px)}
 .hp-copy h1{margin:0 0 .35em;font-size:clamp(14.5px,3.9vw,42px);line-height:1.4;font-weight:900;text-shadow:0 2px 14px rgba(0,0,0,.6)}
 .hp-copy h1 span{display:block;color:#fff}
