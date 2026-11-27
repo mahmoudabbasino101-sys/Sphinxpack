@@ -69,6 +69,7 @@
   <div id="acc-main" hidden>
     <h1>حسابي</h1>
     <div class="acc-mail" id="acc-mail"></div>
+    <button type="button" class="acc-logout" id="acc-logout">تسجيل الخروج</button>
     <div class="acc-grid">
       <section class="acc-panel">
         <h2>بياناتي</h2>
@@ -156,6 +157,10 @@
     $("acc-gate").hidden = ok; $("acc-main").hidden = !ok;
     if (ok) loadAccount(); else loaded = false;
   }
+  $("acc-logout").addEventListener("click", async () => {
+    try { await SPAuth.signOut(); } catch (e) {}
+    location.href = "index.html";
+  });
   $("acc-login").addEventListener("click", () => SPAuth.requireLogin().catch(() => {}));
   $("p-save").addEventListener("click", async () => {
     const btn = $("p-save"), msg = $("p-msg");
