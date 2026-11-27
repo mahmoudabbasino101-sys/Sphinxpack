@@ -121,3 +121,5 @@
 .spa-google:active{transform:translateY(1px)}
 .spa-google:disabled{opacity:.6;cursor:progress}
 .spa-google:focus-visible{outline:2px solid var(--ink,#211D18);outline-offset:2px}
+
+.spa-gwrap{display:flex;justify-content:center;align-items:center;min-height:44px}
