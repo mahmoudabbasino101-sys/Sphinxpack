@@ -243,7 +243,7 @@
     slot.innerHTML = '<div class="acct-wrap"><button type="button" class="acct-btn is-in" data-acct="menu" aria-haspopup="true" aria-expanded="false">' +
       '<span class="acct-avatar" aria-hidden="true">' + esc(name.trim().charAt(0).toUpperCase()) + '</span><span class="acct-label">' + esc(name) + '</span></button>' +
       '<div class="acct-menu" hidden><div class="acct-mail" dir="ltr">' + esc(u.email) + '</div>' +
-      (isOk(u) ? "" : '<button type="button" data-acct="verify">أكّد الإيميل</button>') +
+      (isOk(u) ? '<a href="account.html" class="acct-link">حسابي وطلباتي</a>' : '<button type="button" data-acct="verify">أكّد الإيميل</button>') +
       '<button type="button" data-acct="out">تسجيل الخروج</button></div></div>';
   }
   function mount() { document.querySelectorAll("#acct-slot").forEach(renderSlot); }
