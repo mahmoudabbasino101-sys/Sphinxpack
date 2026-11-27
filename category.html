@@ -10,6 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="assets/customer-auth.css">
 </head>
 <body>
 
@@ -24,7 +25,7 @@
 </div>
 
 <main class="wrap">
-  <div class="prod-grid" id="prod-grid"></div>
+  <div class="prod-grid" id="prod-grid" aria-busy="true"><div class="sk-card" aria-hidden="true"><div class="sk-img"></div><div class="sk-line"></div><div class="sk-line short"></div><div class="sk-btn"></div></div><div class="sk-card" aria-hidden="true"><div class="sk-img"></div><div class="sk-line"></div><div class="sk-line short"></div><div class="sk-btn"></div></div><div class="sk-card" aria-hidden="true"><div class="sk-img"></div><div class="sk-line"></div><div class="sk-line short"></div><div class="sk-btn"></div></div><div class="sk-card" aria-hidden="true"><div class="sk-img"></div><div class="sk-line"></div><div class="sk-line short"></div><div class="sk-btn"></div></div><div class="sk-card" aria-hidden="true"><div class="sk-img"></div><div class="sk-line"></div><div class="sk-line short"></div><div class="sk-btn"></div></div><div class="sk-card" aria-hidden="true"><div class="sk-img"></div><div class="sk-line"></div><div class="sk-line short"></div><div class="sk-btn"></div></div><div class="sk-card" aria-hidden="true"><div class="sk-img"></div><div class="sk-line"></div><div class="sk-line short"></div><div class="sk-btn"></div></div><div class="sk-card" aria-hidden="true"><div class="sk-img"></div><div class="sk-line"></div><div class="sk-line short"></div><div class="sk-btn"></div></div></div>
   <p class="empty-note hidden" id="empty-note">لا توجد منتجات في هذا القسم حاليًا — تابعنا قريبًا.</p>
 </main>
 
@@ -52,8 +53,10 @@
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="assets/firebase-init.js"></script>
 <script src="assets/shop.js"></script>
+<script src="assets/customer-auth.js"></script>
 <script>
   const params = new URLSearchParams(location.search);
   const grid = document.getElementById("prod-grid");
@@ -78,7 +81,7 @@
   };
   window.addFromCard = function (p, btn) {
     const qty = parseInt(document.getElementById("q-" + p.id).value || "1");
-    if (addToCart(p, qty)) { if (btn) flashAddedState(btn); }
+    if (addToCart(p, qty)) { if (btn) { flashAddedState(btn); flyToCart(btn); } }
     else if (typeof p.qty === "number") showStockMsg(document.getElementById("m-" + p.id), p.qty);
   };
   window.flashAddedState = function (btn) {
@@ -110,6 +113,7 @@
       const qty = parseInt(document.getElementById("pm-qty").value || "1");
       if (addToCart(p, qty)) {
         flashAddedState(e.currentTarget);
+        flyToCart(e.currentTarget);
         setTimeout(closeProductModal, 600);
       } else if (typeof p.qty === "number") showStockMsg(document.getElementById("pm-msg"), p.qty);
     };
@@ -206,6 +210,13 @@
       grid.innerHTML = list.map(p => card(p, ICONS[cat.icon] || ICONS.box, cat.icon)).join("");
     });
   }));
+</script>
+<script>
+  /* لو التحميل اتأخر جدًا نشيل الهياكل الرمادية بدل ما تفضل ظاهرة */
+  setTimeout(function () {
+    const g = document.getElementById("prod-grid");
+    if (g && g.querySelector(".sk-card")) { g.innerHTML = ""; g.removeAttribute("aria-busy"); }
+  }, 20000);
 </script>
 </body>
 </html>

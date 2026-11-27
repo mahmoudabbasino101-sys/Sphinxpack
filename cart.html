@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="assets/customer-auth.css">
 </head>
 <body>
 
@@ -27,7 +28,14 @@
       <div id="cart-lines"></div>
     </div>
 
-    <div class="panel">
+    <div class="panel auth-gate" id="auth-gate" hidden>
+      <h3>سجّل دخولك لإكمال الطلب</h3>
+      <p>لازم تسجّل دخولك قبل ما تدخل بيانات الشحن وتختار طريقة الدفع. ده بيحمي طلبك وبياناتك.</p>
+      <div class="gate-total" id="gate-total"></div>
+      <button type="button" class="btn btn-amber btn-block" id="gate-login">تسجيل الدخول / إنشاء حساب</button>
+    </div>
+
+    <div class="panel" id="order-panel" hidden>
       <h3>بيانات الطلب</h3>
       <div class="field">
         <label>الاسم بالكامل</label>
@@ -90,8 +98,10 @@
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="assets/firebase-init.js"></script>
 <script src="assets/shop.js"></script>
+<script src="assets/customer-auth.js"></script>
 <script>
   initSettings(() => initCategories(function () {
     mountHeader(null);
@@ -99,7 +109,25 @@
     if (typeof renderCartPage === "function") renderCartPage(); // إعادة رسم السلة بعد تحميل الأقسام عشان يظهر اسم القسم بدل الكود
   }));
 
+  /* تسجيل الدخول إجباري قبل بيانات الطلب والدفع (والسيرفر بيرفض أي طلب من غير حساب مؤكَّد) */
+  const authGate = document.getElementById("auth-gate"), orderPanel = document.getElementById("order-panel");
+  function updateGateTotal() {
+    const g = document.getElementById("gate-total");
+    if (g) g.textContent = "إجمالي السلة: " + cartTotal(getCart()).toFixed(2) + " ج.م";
+  }
+  function applyAuthGate(user, ok) {
+    authGate.hidden = ok;
+    orderPanel.hidden = !ok;
+    if (ok) {
+      const n = document.getElementById("c-name");
+      if (n && !n.value && user.displayName) n.value = user.displayName;
+    } else updateGateTotal();
+  }
+  document.getElementById("gate-login").addEventListener("click", () => SPAuth.requireLogin().catch(() => {}));
+  if (window.SPAuth) SPAuth.onChange(applyAuthGate); else orderPanel.hidden = false;
+
   function renderCartPage() {
+    updateGateTotal();
     const cart = getCart();
     const wrap = document.getElementById("cart-lines");
     if (!cart.length) {
@@ -190,6 +218,7 @@
   });
 
   document.getElementById("send-btn").addEventListener("click", () => {
+    if (window.SPAuth && !SPAuth.isLoggedIn()) { SPAuth.requireLogin().catch(() => {}); return; }
     const name = document.getElementById("c-name").value.trim();
     const phone = document.getElementById("c-phone").value.trim();
     const address = document.getElementById("c-address").value.trim();
